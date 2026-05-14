@@ -8,6 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -60,7 +61,7 @@ object BeatIQAuthRepository {
                     onSuccess = { resp ->
                         val text = resp.body?.string().orEmpty()
                         if (!resp.isSuccessful) {
-                            return@withContext AuthOutcome.Error(parseDetail(text) ?: resp.message)
+                            return@withContext AuthOutcome.Error(humanizeErrorResponse(resp, text))
                         }
                         val json = JSONObject(text)
                         val access = json.optString("access").takeIf { it.isNotBlank() } ?: return@withContext AuthOutcome.Error("Missing access token")
@@ -68,7 +69,7 @@ object BeatIQAuthRepository {
                         val uid = JwtPayload.userIdFromAccessToken(access) ?: return@withContext AuthOutcome.Error("Invalid token")
                         AuthOutcome.Success(AuthResult(access, refresh, uid))
                     },
-                    onFailure = { e -> AuthOutcome.Error(e.message ?: "Network error") },
+                    onFailure = { e -> AuthOutcome.Error(describeNetworkFailure(e)) },
                 )
         }
 
@@ -101,26 +102,86 @@ object BeatIQAuthRepository {
                     onSuccess = { resp ->
                         val text = resp.body?.string().orEmpty()
                         if (!resp.isSuccessful) {
-                            return@withContext RegisterOutcome.Error(parseDetail(text) ?: resp.message)
+                            return@withContext RegisterOutcome.Error(humanizeErrorResponse(resp, text))
                         }
                         RegisterOutcome.Created
                     },
-                    onFailure = { e -> RegisterOutcome.Error(e.message ?: "Network error") },
+                    onFailure = { e -> RegisterOutcome.Error(describeNetworkFailure(e)) },
                 )
         }
+
+    private fun describeNetworkFailure(e: Throwable): String {
+        val msg = e.message?.trim().orEmpty()
+        if (msg.isNotBlank()) return msg
+        return "Network error (${e.javaClass.simpleName})"
+    }
+
+    /** User-visible message for failed HTTP responses (JSON API errors or HTML 5xx pages). */
+    private fun humanizeErrorResponse(resp: Response, body: String): String {
+        val parsed = parseDetail(body)?.trim()?.takeIf { it.isNotEmpty() }
+        if (parsed != null) return parsed
+        val code = resp.code
+        val phrase = resp.message.trim()
+        val base =
+            buildString {
+                append("Request failed")
+                if (phrase.isNotEmpty()) append(": $phrase")
+                append(" (HTTP $code)")
+            }
+        val trimmed = body.trim()
+        val looksLikeJson = trimmed.startsWith("{")
+        if (code in 500..599) {
+            return if (looksLikeJson) {
+                "$base. The BeatIQ server returned an error. Try again later."
+            } else {
+                "$base. The BeatIQ server is having trouble right now. Try again later, or contact support if this continues."
+            }
+        }
+        if (code == 401 || code == 403) {
+            return "$base. Check your email and password."
+        }
+        return base
+    }
 
     private fun parseDetail(json: String): String? =
         runCatching {
             val o = JSONObject(json)
-            o.optString("detail").takeIf { it.isNotBlank() }
-                ?: o.keys().asSequence().firstOrNull()?.let { k ->
+            readDetailValue(o, "detail")
+                ?: readStringArray(o, "non_field_errors")
+                ?: o.keys().asSequence().firstOrNull { it != "code" }?.let { k ->
                     when (val v = o.get(k)) {
                         is JSONArray ->
-                            (0 until v.length()).joinToString { idx ->
-                                v.get(idx).toString()
-                            }
-                        else -> v.toString()
+                            (0 until v.length()).joinToString("\n") { i ->
+                                when (val item = v.get(i)) {
+                                    is String -> item
+                                    else -> item.toString()
+                                }
+                            }.takeIf { it.isNotBlank() }
+                        is String -> v.takeIf { it.isNotBlank() }
+                        else -> null
                     }
                 }
         }.getOrNull()
+
+    private fun readDetailValue(o: JSONObject, key: String): String? {
+        if (!o.has(key)) return null
+        return when (val v = o.get(key)) {
+            is String -> v.takeIf { it.isNotBlank() }
+            is JSONArray ->
+                (0 until v.length()).joinToString("\n") { i ->
+                    when (val item = v.get(i)) {
+                        is String -> item
+                        else -> item.toString()
+                    }
+                }.takeIf { it.isNotBlank() }
+            else -> null
+        }
+    }
+
+    private fun readStringArray(o: JSONObject, key: String): String? {
+        if (!o.has(key)) return null
+        val v = o.get(key)
+        if (v !is JSONArray) return null
+        return (0 until v.length()).joinToString("\n") { i -> v.getString(i) }.takeIf { it.isNotBlank() }
+    }
 }
