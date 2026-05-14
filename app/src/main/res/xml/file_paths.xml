@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="profile" path="." />
+    <cache-path name="cache" path="." />
+    <external-files-path name="external_music" path="Music/" />
+</paths>

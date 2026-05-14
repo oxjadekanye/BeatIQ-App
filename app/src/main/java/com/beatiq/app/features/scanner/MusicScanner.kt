@@ -2,11 +2,14 @@ package com.beatiq.app.features.scanner
 
 import android.content.ContentUris
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import com.beatiq.app.core.permissions.AudioReadPermission
 import com.beatiq.app.data.model.Song
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -117,7 +120,64 @@ class MusicScanner {
             results.values.toList()
         }
 
+    /**
+     * Picks up audio saved under the app's external Music directory (e.g. DownloadManager targets)
+     * so completed downloads appear in the BeatIQ library even when they are not yet in MediaStore.
+     */
+    suspend fun scanAppDownloadsFolder(context: Context): List<Song> =
+        withContext(Dispatchers.IO) {
+            val dir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: return@withContext emptyList()
+            val files =
+                dir.listFiles()?.filter { f ->
+                    f.isFile && f.length() > 512L && AUDIO_EXTENSIONS.any { ext -> f.name.endsWith(ext, ignoreCase = true) }
+                }.orEmpty()
+            val out = ArrayList<Song>()
+            for (file in files) {
+                val retriever = MediaMetadataRetriever()
+                try {
+                    runCatching {
+                        retriever.setDataSource(file.absolutePath)
+                        val durMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                        if (durMs < APP_DOWNLOAD_MIN_DURATION_MS) return@runCatching
+                        val title =
+                            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE).orEmpty()
+                                .ifBlank { file.nameWithoutExtension }
+                        val artist =
+                            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST).orEmpty()
+                                .ifBlank { "Unknown artist" }
+                        val album =
+                            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM).orEmpty()
+                                .ifBlank { "Unknown album" }
+                        val mime = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE).orEmpty()
+                        if (mime.isNotBlank() && !ALLOWED_MIME_TYPES.contains(mime.lowercase())) return@runCatching
+                        val id = "file-${file.absolutePath.hashCode()}"
+                        out.add(
+                            Song(
+                                id = id,
+                                title = title,
+                                artist = artist,
+                                album = album,
+                                genre = "",
+                                durationMs = durMs,
+                                filePath = file.absolutePath,
+                                artworkUri = null,
+                                dateAdded = file.lastModified(),
+                                playCount = 0,
+                                isFavorite = false,
+                            ),
+                        )
+                    }
+                } finally {
+                    runCatching { retriever.release() }
+                }
+            }
+            out
+        }
+
     companion object {
+        private const val APP_DOWNLOAD_MIN_DURATION_MS = 3_000L
+        private val AUDIO_EXTENSIONS = listOf(".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".wav", ".bin")
+
         private const val MIN_DURATION_MS = 30_000L
         private val ALLOWED_MIME_TYPES = setOf(
             "audio/mpeg",

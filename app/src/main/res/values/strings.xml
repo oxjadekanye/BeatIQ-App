@@ -23,14 +23,61 @@
     <string name="home_greet_evening">Good evening</string>
     <string name="home_greet_night">Welcome back</string>
     <string name="home_headline">Your sound, tuned for you</string>
-    <string name="home_sub">Hand-picked moods and mixes — all placeholder for now.</string>
-    <string name="home_section_featured">Featured for you</string>
-    <string name="home_section_trending">Trending now</string>
-    <string name="home_section_recent">Recent searches</string>
+    <string name="home_sub">From your device library — recently added, most played, and favourites.</string>
+    <string name="home_section_recently_added">Recently added</string>
+    <string name="home_section_recently_played">Recently played</string>
+    <string name="home_section_most_played">Most played</string>
+    <string name="home_section_favourites">Favourites</string>
+    <string name="home_section_albums">Albums</string>
+    <string name="home_section_artists">Artists</string>
+    <string name="home_empty_library_title">No local music yet</string>
+    <string name="home_empty_library_body">Allow audio access in Library and scan to see your tracks here.</string>
 
-    <string name="discover_search_placeholder">Artists, songs, or moods</string>
-    <string name="discover_section_genres">Browse by genre</string>
-    <string name="discover_section_playlists">Trending playlists</string>
+    <string name="discover_search_placeholder">Search your library by title, artist, album, or genre</string>
+    <string name="discover_section_genres">Genres on this device</string>
+    <string name="discover_section_albums">Albums</string>
+    <string name="discover_section_artists">Artists</string>
+    <string name="discover_section_suggested">Suggested from your library</string>
+    <string name="discover_section_results">Matching tracks</string>
+    <string name="discover_section_online_browser">Online browser</string>
+    <string name="discover_online_browser_body">Browse the web for legal music discovery. Only HTTPS links are allowed.</string>
+    <string name="discover_open_online_browser">Open online browser</string>
+    <string name="discover_genre_all">All</string>
+    <string name="discover_empty_search_title">No matches</string>
+    <string name="discover_empty_search_body">Try another word or clear filters.</string>
+
+    <string name="browser_cd_page_back">Go back in page history</string>
+    <string name="browser_cd_close_browser">Close browser</string>
+
+    <string name="browser_title">Online browser</string>
+    <string name="browser_url_hint">https://…</string>
+    <string name="browser_go">Go</string>
+    <string name="browser_open_external">Open in browser</string>
+    <string name="browser_quick_links">Quick links</string>
+    <string name="browser_disclaimer">Only download music you own, have permission to use, or that is legally offered for free download. BeatIQ does not bypass DRM or rip streams.</string>
+    <string name="browser_blocked_scheme">Only secure https:// links can be opened here.</string>
+    <string name="browser_download_dialog_title">Download this file?</string>
+    <string name="browser_download_confirm">Download</string>
+    <string name="browser_download_cancel">Cancel</string>
+    <string name="browser_link_google">Google</string>
+    <string name="browser_link_fma">Free Music Archive</string>
+    <string name="browser_link_jamendo">Jamendo</string>
+    <string name="browser_link_archive">Internet Archive Audio</string>
+    <string name="browser_link_audius">Audius</string>
+    <string name="browser_link_soundcloud">SoundCloud</string>
+    <string name="browser_link_artists">Artist sites (search)</string>
+
+    <string name="downloads_manager_description">BeatIQ download</string>
+    <string name="downloads_status_running">Downloading…</string>
+    <string name="downloads_status_completed">Completed</string>
+    <string name="downloads_status_failed">Failed</string>
+    <string name="downloads_status_pending">Pending</string>
+    <string name="downloads_empty_active_title">No active downloads</string>
+    <string name="downloads_empty_active_body">Use the online browser and confirm a legal direct file link to download audio to this device.</string>
+    <string name="downloads_empty_completed_hint">Completed files are saved under Music in app storage.</string>
+
+    <string name="profile_premium_coming_title">BeatIQ Plus</string>
+    <string name="profile_premium_coming_body">Premium features are not available yet. Thanks for your patience.</string>
 
     <string name="library_empty_albums_title">No saved albums yet</string>
     <string name="library_empty_albums_body">Save albums and playlists to see them here.</string>
@@ -60,7 +107,7 @@
     <string name="profile_name">Music lover</string>
     <string name="profile_handle">\@beatiq.listener</string>
     <string name="profile_premium_title">BeatIQ Plus</string>
-    <string name="profile_premium_body">Lossless audio, smart queues, and early access — coming soon.</string>
+    <string name="profile_premium_body">Coming soon — premium is not available in this build.</string>
     <string name="profile_premium_cta">Preview benefits</string>
     <string name="profile_settings_title">Settings</string>
     <string name="profile_setting_notifications">Notifications</string>
@@ -70,4 +117,118 @@
 
     <string name="playback_notification_channel_name">Playback</string>
     <string name="playback_notification_channel_description">Media controls and now playing for BeatIQ</string>
+
+    <string name="action_cancel">Cancel</string>
+    <string name="action_open">Open</string>
+
+    <string name="artist_tracks_subtitle">%d tracks</string>
+    <string name="album_tracks_subtitle">%d tracks</string>
+
+    <string name="library_all_songs_title">All songs</string>
+    <string name="library_genre_songs_title">Genre: %1$s</string>
+    <string name="library_sort_label">Sort</string>
+    <string name="library_sort_title">Title</string>
+    <string name="library_sort_artist">Artist</string>
+    <string name="library_sort_album">Album</string>
+    <string name="library_sort_date_added">Date added</string>
+    <string name="library_favourites_empty">No favourites yet. Tap the heart on any track to add it here.</string>
+
+    <string name="library_playlists_header">Your playlists</string>
+    <string name="library_playlists_new">New playlist</string>
+    <string name="playlist_create_dialog_title">Name your playlist</string>
+    <string name="playlist_create_hint">My playlist</string>
+    <string name="playlist_create_confirm">Create</string>
+    <string name="playlist_default_name">Playlist</string>
+    <string name="playlist_track_count">%d songs</string>
+    <string name="playlist_add_tracks_cd">Add tracks</string>
+    <string name="playlist_remove_track_cd">Remove from playlist</string>
+    <string name="playlist_pick_title">Add to playlist</string>
+    <string name="playlist_pick_body">Pick songs from your library. Only direct HTTPS audio file links can be downloaded from the browser or paste tool.</string>
+    <string name="playlist_add_one_cd">Add to playlist</string>
+
+    <string name="library_folders_smart_title">Smart library layout</string>
+    <string name="library_folders_smart_body">BeatIQ groups your music by album and artist using embedded tags. Use genres below as quick folders into filtered track lists.</string>
+    <string name="library_folders_by_genre">Jump by genre</string>
+    <string name="library_folders_no_genres">No genre tags found on your tracks yet.</string>
+
+    <string name="library_downloads_card_title">Download queue</string>
+    <string name="library_downloads_card_body">Active and completed legal downloads are tracked in the Downloads tab. Open it to manage your queue.</string>
+    <string name="library_downloads_open_tab">Open Downloads tab</string>
+
+    <string name="settings_notifications_body">Control whether BeatIQ can post playback and download notifications. Android 13+ requires explicit permission for notifications.</string>
+    <string name="settings_open_notification_settings">Open notification settings</string>
+    <string name="settings_playback_quality_label">Streaming &amp; download quality preference</string>
+    <string name="settings_quality_high">High</string>
+    <string name="settings_quality_standard">Standard</string>
+    <string name="settings_quality_data_saver">Data saver</string>
+    <string name="settings_wifi_only_downloads">Wi‑Fi only downloads</string>
+    <string name="settings_loudness_normalization">Comfort loudness (preference)</string>
+    <string name="settings_equalizer_hint">System audio effects depend on your device manufacturer. If nothing opens, use your phone sound settings.</string>
+    <string name="settings_open_system_equalizer">Try system equalizer</string>
+    <string name="settings_storage_body">BeatIQ stores completed downloads in app-specific Music storage. You can clear cache or review usage in system settings.</string>
+    <string name="settings_open_app_storage">App storage &amp; cache</string>
+    <string name="settings_privacy_body">BeatIQ indexes audio on this device and records playlists locally. We do not upload your library in this build. Only use the browser or paste tool for HTTPS links you are allowed to download.</string>
+
+    <string name="discover_paste_title">Paste a legal download link</string>
+    <string name="discover_paste_hint">https://…/file.mp3</string>
+    <string name="discover_paste_explain">Paste a direct HTTPS link to an audio file you may download (for example from an artist or label page). Social feeds often wrap links — open the page in the online browser and tap a direct file URL when you see one.</string>
+    <string name="discover_paste_submit">Queue download</string>
+
+    <string name="downloads_tab_active">Active</string>
+    <string name="downloads_tab_completed">Completed</string>
+
+    <string name="profile_change_photo">Change profile photo</string>
+    <string name="profile_take_selfie">Take selfie</string>
+    <string name="profile_choose_from_library">Choose from library</string>
+
+    <string name="settings_show_lyrics">Show lyrics while playing</string>
+    <string name="player_lyrics_toggle">Lyrics</string>
+    <string name="player_lyrics_loading">Looking up lyrics…</string>
+
+    <string name="identify_title">Identify music</string>
+    <string name="identify_body">Hold your phone near the speaker. We record a short sample, send it to AudD for recognition, and show matches. Add your AudD token in local.properties as audd.api.token for this feature.</string>
+    <string name="identify_listen_cta">Listen &amp; identify</string>
+    <string name="identify_listening">Listening…</string>
+    <string name="identify_no_token">Add audd.api.token to local.properties to enable recognition.</string>
+    <string name="identify_mic_denied">Microphone permission is required to capture audio for identification.</string>
+    <string name="identify_download_preview">Download preview (if available)</string>
+    <string name="discover_identify_section">What’s playing?</string>
+    <string name="discover_identify_body">Identify a song from the room, then optionally queue a legal preview download.</string>
+    <string name="discover_open_identify">Open identify</string>
+
+    <string name="song_menu_play">Play</string>
+    <string name="song_menu_add_favourite">Add to favourites</string>
+    <string name="song_menu_remove_favourite">Remove from favourites</string>
+    <string name="song_menu_add_playlist">Add to playlist</string>
+    <string name="song_menu_pick_playlist_title">Choose playlist</string>
+    <string name="song_menu_no_playlists">Create a playlist in Library first.</string>
+    <string name="song_menu_library_folders">Library &amp; folders</string>
+    <string name="song_menu_share">Share file</string>
+    <string name="song_menu_move">Move on device</string>
+    <string name="song_menu_move_hint">BeatIQ indexes files where they already live. To move audio files between folders, use your device Files app or a file manager, then run a library scan from settings when available.</string>
+    <string name="song_menu_create_folder">Smart folders (genres)</string>
+    <string name="song_menu_create_folder_hint">BeatIQ groups tracks using embedded tags. Open Library → Folders to jump into genre-based lists.</string>
+    <string name="song_menu_ok">OK</string>
+
+    <string name="auth_email">Email</string>
+    <string name="auth_email_hint">Use the email you registered with (not your username).</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_password_confirm">Confirm password</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_create_account">New user — create an account</string>
+    <string name="auth_register_title">Create your BeatIQ account</string>
+    <string name="auth_register_subtitle">We will send a verification link to your email. After you verify, you will receive a welcome message.</string>
+    <string name="auth_full_name">Full name</string>
+    <string name="auth_birth_month_year_label">Date of birth (month &amp; year): %1$s</string>
+    <string name="auth_create_account_submit">Create account</string>
+    <string name="auth_logout">Log out</string>
+    <string name="auth_per_user_notice">Your library, playlists, and downloads are stored only on this device for your account and are not shared with other users.</string>
+    <string name="auth_error_missing_credentials">Enter email and password.</string>
+    <string name="auth_error_email_format">Enter a valid email address (for example oxj.adekanye@gmail.com). BeatIQ signs you in with email, not username.</string>
+    <string name="auth_error_generic">Could not sign in. Check your connection and try again.</string>
+    <string name="auth_error_library_init">Signed in, but your on-device library could not be opened. Try again or reinstall the app.</string>
+    <string name="auth_error_full_name">Enter your full name.</string>
+    <string name="auth_error_password_short">Password must be at least 6 characters.</string>
+    <string name="auth_error_password_mismatch">Passwords do not match.</string>
+    <string name="auth_register_done_hint">Account created. Check your email for the verification link, then sign in here.</string>
 </resources>

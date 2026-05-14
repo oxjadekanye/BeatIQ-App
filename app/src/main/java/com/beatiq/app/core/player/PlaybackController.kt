@@ -255,6 +255,23 @@ class PlaybackController private constructor(
         updateFromController()
     }
 
+    /** Release Media3 binding when switching accounts or logging out. */
+    fun releaseForTeardown() {
+        ticker?.cancel()
+        ticker = null
+        runCatching {
+            mediaController?.removeListener(playerListener)
+            mediaController?.release()
+        }
+        mediaController = null
+        controllerFuture?.cancel(true)
+        controllerFuture = null
+        queueSongs = emptyList()
+        restoreAttempted = false
+        PlaybackBridge.listener = null
+        _state.value = PlaybackUiState()
+    }
+
     companion object {
         @Volatile
         private var instance: PlaybackController? = null
@@ -268,6 +285,13 @@ class PlaybackController private constructor(
                 PlaybackBridge.listener = created
                 instance = created
                 created
+            }
+        }
+
+        fun reset() {
+            synchronized(this) {
+                instance?.releaseForTeardown()
+                instance = null
             }
         }
     }

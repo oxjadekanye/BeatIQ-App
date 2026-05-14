@@ -16,8 +16,15 @@ internal fun SongEntity.toSong(): Song = Song(
     isFavorite = isFavorite,
 )
 
+internal fun Song.effectiveMediaStoreId(): Long =
+    when {
+        id.startsWith("media-") -> id.removePrefix("media-").toLongOrNull() ?: 0L
+        else ->
+            ((filePath.hashCode().toLong() and 0x7FFF_FFFFL) xor (id.hashCode().toLong() shl 32)) and Long.MAX_VALUE
+    }.let { if (it == 0L) 1L else it }
+
 internal fun Song.toEntity(recentlyPlayedAt: Long? = null): SongEntity {
-    val mediaId = id.removePrefix("media-").toLongOrNull() ?: 0L
+    val mediaId = effectiveMediaStoreId()
     return SongEntity(
         id = id,
         mediaStoreId = mediaId,

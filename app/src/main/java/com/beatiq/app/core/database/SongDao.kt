@@ -11,6 +11,23 @@ interface SongDao {
     @Query("SELECT * FROM songs ORDER BY dateAdded DESC")
     fun observeAll(): Flow<List<SongEntity>>
 
+    @Query("SELECT * FROM songs ORDER BY dateAdded DESC LIMIT :limit")
+    fun observeRecentlyAdded(limit: Int): Flow<List<SongEntity>>
+
+    @Query(
+        "SELECT * FROM songs WHERE recentlyPlayedAt IS NOT NULL " +
+            "ORDER BY recentlyPlayedAt DESC LIMIT :limit",
+    )
+    fun observeRecentlyPlayed(limit: Int): Flow<List<SongEntity>>
+
+    @Query(
+        "SELECT * FROM songs ORDER BY playCount DESC, title COLLATE NOCASE ASC LIMIT :limit",
+    )
+    fun observeMostPlayed(limit: Int): Flow<List<SongEntity>>
+
+    @Query("SELECT * FROM songs WHERE isFavorite = 1 ORDER BY title COLLATE NOCASE ASC")
+    fun observeFavorites(): Flow<List<SongEntity>>
+
     @Query("SELECT * FROM songs ORDER BY dateAdded DESC")
     suspend fun getAllOnce(): List<SongEntity>
 

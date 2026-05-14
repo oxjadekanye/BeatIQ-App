@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.BeatIQ" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.BeatIQ.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/beatiq_brand_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.BeatIQ</item>
+    </style>
 </resources>

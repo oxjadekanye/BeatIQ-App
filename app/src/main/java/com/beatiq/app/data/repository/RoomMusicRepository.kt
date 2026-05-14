@@ -5,7 +5,6 @@ import com.beatiq.app.core.database.toSong
 import com.beatiq.app.data.model.Song
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.map
 
 class RoomMusicRepository(
     private val dao: SongDao,
@@ -13,6 +12,18 @@ class RoomMusicRepository(
 
     override fun observeAllSongs(): Flow<List<Song>> =
         dao.observeAll().map { entities -> entities.map { it.toSong() } }
+
+    override fun observeRecentlyAdded(limit: Int): Flow<List<Song>> =
+        dao.observeRecentlyAdded(limit).map { entities -> entities.map { it.toSong() } }
+
+    override fun observeRecentlyPlayed(limit: Int): Flow<List<Song>> =
+        dao.observeRecentlyPlayed(limit).map { entities -> entities.map { it.toSong() } }
+
+    override fun observeMostPlayed(limit: Int): Flow<List<Song>> =
+        dao.observeMostPlayed(limit).map { entities -> entities.map { it.toSong() } }
+
+    override fun observeFavoriteSongs(): Flow<List<Song>> =
+        dao.observeFavorites().map { entities -> entities.map { it.toSong() } }
 
     override suspend fun getSongById(id: String): Song? =
         dao.getById(id)?.toSong()

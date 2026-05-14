@@ -1,5 +1,6 @@
 package com.beatiq.app.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 val Purple80 = Color(0xFFD0BCFF)
@@ -22,3 +23,13 @@ val BeatIQOnDarkMuted = Color(0xFFA89FC0)
 val BeatIQCardStroke = Color(0x26FFFFFF)
 val BeatIQGlowPink = Color(0x33FF6B9D)
 val BeatIQGlowBlue = Color(0x3348C6FF)
+
+/** Wordmark gradient aligned with the neon B logo (magenta → violet → cyan). */
+val BeatIQWordmarkPink = Color(0xFFFF4FD8)
+val BeatIQWordmarkViolet = Color(0xFFC855FF)
+val BeatIQWordmarkCyan = Color(0xFF00D4FF)
+
+val BeatIQWordmarkBrush: Brush =
+    Brush.horizontalGradient(
+        listOf(BeatIQWordmarkPink, BeatIQWordmarkViolet, BeatIQWordmarkCyan),
+    )

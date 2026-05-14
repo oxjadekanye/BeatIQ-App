@@ -2,6 +2,7 @@ package com.beatiq.app.data.repository
 
 import android.content.Context
 import com.beatiq.app.core.database.SongDao
+import com.beatiq.app.core.database.effectiveMediaStoreId
 import com.beatiq.app.core.database.toEntity
 import com.beatiq.app.core.database.toSong
 import com.beatiq.app.data.model.Song
@@ -16,11 +17,16 @@ class RoomScannerRepository(
 ) : ScannerRepository {
 
     override suspend fun scanLibrary(): List<Song> = withContext(Dispatchers.IO) {
-        val scanned = scanner.scanAudioLibrary(appContext)
+        val fromStore = scanner.scanAudioLibrary(appContext)
+        val fromApp = scanner.scanAppDownloadsFolder(appContext)
+        val merged = LinkedHashMap<String, Song>()
+        for (s in fromStore) merged[s.filePath] = s
+        for (s in fromApp) merged[s.filePath] = s
+        val scanned = merged.values.toList()
         if (scanned.isNotEmpty()) {
             val existing = dao.getAllOnce().associateBy { it.mediaStoreId }
-            val merged = scanned.map { song ->
-                val mediaId = song.id.removePrefix("media-").toLongOrNull() ?: 0L
+            val mergedEntities = scanned.map { song ->
+                val mediaId = song.effectiveMediaStoreId()
                 val old = existing[mediaId]
                 val base = song.toEntity(old?.recentlyPlayedAt)
                 if (old != null) {
@@ -32,7 +38,7 @@ class RoomScannerRepository(
                     base
                 }
             }
-            dao.upsertAll(merged)
+            dao.upsertAll(mergedEntities)
         }
         dao.getAllOnce().map { it.toSong() }
     }

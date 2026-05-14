@@ -9,6 +9,14 @@ import kotlinx.coroutines.flow.Flow
 interface MusicRepository {
     fun observeAllSongs(): Flow<List<Song>>
 
+    fun observeRecentlyAdded(limit: Int = 40): Flow<List<Song>>
+
+    fun observeRecentlyPlayed(limit: Int = 40): Flow<List<Song>>
+
+    fun observeMostPlayed(limit: Int = 40): Flow<List<Song>>
+
+    fun observeFavoriteSongs(): Flow<List<Song>>
+
     suspend fun getSongById(id: String): Song?
 
     suspend fun toggleFavorite(songId: String)

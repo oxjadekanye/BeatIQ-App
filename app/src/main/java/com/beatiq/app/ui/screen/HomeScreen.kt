@@ -1,6 +1,5 @@
 package com.beatiq.app.ui.screen
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,32 +12,35 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.beatiq.app.R
+import com.beatiq.app.presentation.home.HomeViewModel
 import com.beatiq.app.ui.components.BeatIQBackButton
-import com.beatiq.app.ui.components.FeaturedMusicCard
+import com.beatiq.app.ui.components.EmptyHighlightCard
+import com.beatiq.app.ui.components.LocalAlbumCard
+import com.beatiq.app.ui.components.LocalArtistChipCard
+import com.beatiq.app.ui.components.LocalSongHeroCard
+import com.beatiq.app.ui.components.LocalSongPosterCard
 import com.beatiq.app.ui.components.PremiumScreenBackground
 import com.beatiq.app.ui.components.SectionHeader
-import com.beatiq.app.ui.components.TrendingMusicCard
-import com.beatiq.app.ui.data.MockCatalog
 import java.time.LocalTime
 
 @Composable
 fun HomeScreen(onBack: () -> Unit) {
-    val featured = remember { MockCatalog.featured }
-    val trending = remember { MockCatalog.trending }
-    val recent = remember { MockCatalog.recentSearches }
+    val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
+    val state by vm.uiState.collectAsStateWithLifecycle()
     val greeting = greetingLabel()
 
     PremiumScreenBackground {
@@ -81,67 +83,196 @@ fun HomeScreen(onBack: () -> Unit) {
                     )
                 }
             }
+
+            if (state.recentlyAdded.isEmpty() &&
+                state.recentlyPlayed.isEmpty() &&
+                state.mostPlayed.isEmpty() &&
+                state.favorites.isEmpty()
+            ) {
+                item {
+                    EmptyHighlightCard(
+                        title = stringResource(R.string.home_empty_library_title),
+                        body = stringResource(R.string.home_empty_library_body),
+                        icon = Icons.Outlined.LibraryMusic,
+                    )
+                }
+            }
+
             item {
-                SectionHeader(
-                    title = stringResource(R.string.home_section_featured),
-                    actionLabel = stringResource(R.string.action_see_all),
-                    onActionClick = { /* wire navigation later */ },
+                SectionHeader(title = stringResource(R.string.home_section_recently_added))
+            }
+            item {
+                if (state.recentlyAdded.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_empty_library_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        items(state.recentlyAdded, key = { it.id }) { song ->
+                            LocalSongHeroCard(
+                                song = song,
+                                onClick = { vm.playSongWithQueue(song, state.recentlyAdded) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                SectionHeader(title = stringResource(R.string.home_section_recently_played))
+            }
+            item {
+                if (state.recentlyPlayed.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_empty_library_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        items(state.recentlyPlayed, key = { it.id }) { song ->
+                            LocalSongPosterCard(
+                                song = song,
+                                onClick = { vm.playSongWithQueue(song, state.recentlyPlayed) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                SectionHeader(title = stringResource(R.string.home_section_most_played))
+            }
+            item {
+                if (state.mostPlayed.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_empty_library_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        items(state.mostPlayed, key = { it.id }) { song ->
+                            LocalSongPosterCard(
+                                song = song,
+                                onClick = { vm.playSongWithQueue(song, state.mostPlayed) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                SectionHeader(title = stringResource(R.string.home_section_favourites))
+            }
+            item {
+                if (state.favorites.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_empty_library_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        items(state.favorites, key = { it.id }) { song ->
+                            LocalSongPosterCard(
+                                song = song,
+                                onClick = { vm.playSongWithQueue(song, state.favorites) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                SectionHeader(title = stringResource(R.string.home_section_albums))
+            }
+            item {
+                if (state.albums.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_empty_library_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        items(state.albums, key = { "${it.album}|${it.artist}" }) { album ->
+                            LocalAlbumCard(
+                                albumTitle = album.album,
+                                artist = album.artist,
+                                artworkUri = album.artworkUri,
+                                fallbackFilePath = album.representativePath,
+                                onClick = {
+                                    val queue = album.songs
+                                    vm.playSongWithQueue(queue.first(), queue)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                SectionHeader(title = stringResource(R.string.home_section_artists))
+            }
+            item {
+                if (state.artists.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_empty_library_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
+                        items(state.artists, key = { it.artist }) { artist ->
+                            LocalArtistChipCard(
+                                artist = artist.artist,
+                                artworkUri = artist.artworkUri,
+                                fallbackFilePath = artist.representativePath,
+                                trackCount = artist.songCount,
+                                onClick = {
+                                    val queue = artist.songs
+                                    vm.playSongWithQueue(queue.first(), queue)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = "TODO: Integrate licensed streaming catalog when rights and APIs are available.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                 )
-            }
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                ) {
-                    items(featured, key = { it.id }) { item ->
-                        FeaturedMusicCard(item = item)
-                    }
-                }
-            }
-            item {
-                SectionHeader(
-                    title = stringResource(R.string.home_section_trending),
-                    actionLabel = stringResource(R.string.action_see_all),
-                    onActionClick = { /* wire navigation later */ },
-                )
-            }
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                ) {
-                    items(trending, key = { it.id }) { item ->
-                        TrendingMusicCard(item = item)
-                    }
-                }
-            }
-            item {
-                SectionHeader(title = stringResource(R.string.home_section_recent))
-            }
-            item {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    recent.forEach { label ->
-                        SuggestionChip(
-                            onClick = { /* no-op: search not wired */ },
-                            label = {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
-                                labelColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                        )
-                    }
-                }
             }
         }
     }
