@@ -6,7 +6,7 @@ package com.beatiq.app
  */
 object BeatIQPublicSite {
     const val BASE_URL: String = "https://www.beatiq.co.uk"
-    const val PRIVACY_POLICY_URL: String = "$BASE_URL/privacy-policy"
-    const val TERMS_URL: String = "$BASE_URL/terms-and-conditions"
-    const val COOKIE_POLICY_URL: String = "$BASE_URL/cookie-policy"
+    const val PRIVACY_POLICY_URL: String = "$BASE_URL/privacy-policy/"
+    const val TERMS_URL: String = "$BASE_URL/terms-and-conditions/"
+    const val COOKIE_POLICY_URL: String = "$BASE_URL/cookie-policy/"
 }
