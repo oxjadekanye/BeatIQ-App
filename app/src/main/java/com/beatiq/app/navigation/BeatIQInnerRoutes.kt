@@ -24,6 +24,7 @@ object BeatIQInnerRoutes {
     const val SETTINGS_PLAYBACK = "settings_playback"
     const val SETTINGS_STORAGE = "settings_storage"
     const val SETTINGS_PRIVACY = "settings_privacy"
+    const val LEGAL = "legal"
 
     val bottomTabRoutes =
         setOf(HOME, DISCOVER, LIBRARY, DOWNLOADS, PROFILE)
@@ -53,7 +54,8 @@ fun isProfileStackRoute(route: String?): Boolean =
         route == BeatIQInnerRoutes.SETTINGS_NOTIFICATIONS ||
         route == BeatIQInnerRoutes.SETTINGS_PLAYBACK ||
         route == BeatIQInnerRoutes.SETTINGS_STORAGE ||
-        route == BeatIQInnerRoutes.SETTINGS_PRIVACY
+        route == BeatIQInnerRoutes.SETTINGS_PRIVACY ||
+        route == BeatIQInnerRoutes.LEGAL
 
 fun isDiscoverStackRoute(route: String?): Boolean =
     route == BeatIQInnerRoutes.DISCOVER ||

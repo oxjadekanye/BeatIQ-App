@@ -105,7 +105,7 @@
 
     <string name="profile_avatar_content">Profile avatar placeholder</string>
     <string name="profile_name">Music lover</string>
-    <string name="profile_handle">\@beatiq.listener</string>
+    <string name="profile_handle">Your account</string>
     <string name="profile_premium_title">BeatIQ Plus</string>
     <string name="profile_premium_body">Coming soon — premium is not available in this build.</string>
     <string name="profile_premium_cta">Preview benefits</string>
@@ -114,6 +114,14 @@
     <string name="profile_setting_playback">Playback &amp; quality</string>
     <string name="profile_setting_storage">Storage &amp; data</string>
     <string name="profile_setting_privacy">Privacy</string>
+    <string name="profile_setting_legal">Legal &amp; policies</string>
+
+    <string name="legal_screen_title">Legal &amp; policies</string>
+    <string name="legal_company_block">BeatIQ is a product of Aurexus Group Ltd.\nUnit A, 82 James Carter Road\nMildenhall\nBury St Edmunds\nSuffolk\nIP28 7DE\nUnited Kingdom</string>
+    <string name="legal_open_privacy">Open Privacy Policy</string>
+    <string name="legal_open_terms">Open Terms and Conditions</string>
+    <string name="legal_open_cookies">Open Cookie Policy</string>
+    <string name="legal_contact_hint">Contact: admin@beatiq.co.uk</string>
 
     <string name="playback_notification_channel_name">Playback</string>
     <string name="playback_notification_channel_description">Media controls and now playing for BeatIQ</string>
@@ -167,7 +175,7 @@
     <string name="settings_open_system_equalizer">Try system equalizer</string>
     <string name="settings_storage_body">BeatIQ stores completed downloads in app-specific Music storage. You can clear cache or review usage in system settings.</string>
     <string name="settings_open_app_storage">App storage &amp; cache</string>
-    <string name="settings_privacy_body">BeatIQ indexes audio on this device and records playlists locally. We do not upload your library in this build. Only use the browser or paste tool for HTTPS links you are allowed to download.</string>
+    <string name="settings_privacy_body">BeatIQ indexes audio on this device and stores playlists locally in this build. Use only HTTPS links you are entitled to access in the browser or paste tool.\n\nBeatIQ is a product of Aurexus Group Ltd, Unit A, 82 James Carter Road, Mildenhall, Bury St Edmunds, Suffolk, IP28 7DE, United Kingdom. Open Legal &amp; policies from your profile for the Privacy Policy, Terms and Conditions, and Cookie Policy on our website. Contact: admin@beatiq.co.uk</string>
 
     <string name="discover_paste_title">Paste a legal download link</string>
     <string name="discover_paste_hint">https://…/file.mp3</string>

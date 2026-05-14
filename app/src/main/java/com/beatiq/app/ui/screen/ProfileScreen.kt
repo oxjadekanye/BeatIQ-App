@@ -66,6 +66,7 @@ fun ProfileScreen(
     onOpenPlayback: () -> Unit,
     onOpenStorage: () -> Unit,
     onOpenPrivacy: () -> Unit,
+    onOpenLegal: () -> Unit,
 ) {
     val context = LocalContext.current
     val authPrefs = remember { AuthPreferences(context) }
@@ -226,6 +227,7 @@ fun ProfileScreen(
                 onOpenPlayback = onOpenPlayback,
                 onOpenStorage = onOpenStorage,
                 onOpenPrivacy = onOpenPrivacy,
+                onOpenLegal = onOpenLegal,
             )
         }
     }
@@ -277,6 +279,7 @@ private fun SettingsCard(
     onOpenPlayback: () -> Unit,
     onOpenStorage: () -> Unit,
     onOpenPrivacy: () -> Unit,
+    onOpenLegal: () -> Unit,
 ) {
     val rows: List<Pair<Int, () -> Unit>> =
         listOf(
@@ -284,6 +287,7 @@ private fun SettingsCard(
             R.string.profile_setting_playback to onOpenPlayback,
             R.string.profile_setting_storage to onOpenStorage,
             R.string.profile_setting_privacy to onOpenPrivacy,
+            R.string.profile_setting_legal to onOpenLegal,
         )
     Card(
         modifier = modifier.fillMaxWidth(),

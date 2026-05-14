@@ -58,6 +58,7 @@ import com.beatiq.app.ui.screen.DownloadsScreen
 import com.beatiq.app.ui.screen.HomeScreen
 import com.beatiq.app.ui.screen.LibraryAllSongsScreen
 import com.beatiq.app.ui.screen.LibraryScreen
+import com.beatiq.app.ui.screen.LegalScreen
 import com.beatiq.app.ui.screen.OnlineMusicBrowserScreen
 import com.beatiq.app.ui.screen.PlaylistDetailScreen
 import com.beatiq.app.ui.screen.PlaylistPickScreen
@@ -289,6 +290,9 @@ private fun MainShell(
                         onOpenPrivacy = {
                             innerNavController.navigate(BeatIQInnerRoutes.SETTINGS_PRIVACY)
                         },
+                        onOpenLegal = {
+                            innerNavController.navigate(BeatIQInnerRoutes.LEGAL)
+                        },
                     )
                 }
                 composable(BeatIQInnerRoutes.ONLINE_BROWSER) {
@@ -374,6 +378,9 @@ private fun MainShell(
                 }
                 composable(BeatIQInnerRoutes.SETTINGS_PRIVACY) {
                     SettingsPrivacyScreen(onBack = { innerNavController.popBackStack() })
+                }
+                composable(BeatIQInnerRoutes.LEGAL) {
+                    LegalScreen(onBack = { innerNavController.popBackStack() })
                 }
             }
         }
