@@ -1,6 +1,7 @@
 package com.beatiq.app.core.network
 
 import android.util.Log
+import com.beatiq.app.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -15,7 +16,7 @@ internal object BeatIQApiFailureLogger : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val response = chain.proceed(request)
-        if (!response.isSuccessful) {
+        if (BuildConfig.DEBUG && !response.isSuccessful) {
             val snippet =
                 runCatching {
                     response.peekBody(512).string().take(BODY_SNIPPET_MAX)
