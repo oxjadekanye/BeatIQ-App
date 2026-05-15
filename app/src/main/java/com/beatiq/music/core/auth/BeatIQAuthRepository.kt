@@ -166,10 +166,29 @@ object BeatIQAuthRepository {
     private fun parseDetail(json: String): String? =
         runCatching {
             val o = JSONObject(json)
-            readDetailValue(o, "detail")
-                ?: readStringArray(o, "non_field_errors")
-                ?: flattenFieldErrors(o)
+            val raw =
+                readDetailValue(o, "detail")
+                    ?: readStringArray(o, "non_field_errors")
+                    ?: flattenFieldErrors(o)
+            raw?.let { humanizeAuthDetail(it) }
         }.getOrNull()
+
+    /** Map legacy Django JWT errors to clearer BeatIQ sign-in guidance. */
+    private fun humanizeAuthDetail(detail: String): String {
+        val lower = detail.lowercase()
+        return when {
+            lower.contains("no active account") ->
+                "No BeatIQ account found for this email and password. " +
+                    "If you just signed up, verify your email first, or tap Create account."
+            lower.contains("email address is not verified") || lower.contains("email_not_verified") ->
+                "Verify your email using the link we sent, then sign in again."
+            lower.contains("account_not_found") || lower.contains("no beatiq account") ->
+                detail
+            lower.contains("account_inactive") || lower.contains("not active yet") ->
+                detail
+            else -> detail
+        }
+    }
 
     /** DRF validation errors: one line per field so users see every problem, not an arbitrary first key. */
     private fun flattenFieldErrors(o: JSONObject): String? {

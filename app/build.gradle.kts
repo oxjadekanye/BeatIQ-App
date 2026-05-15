@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -17,6 +18,24 @@ private val keystoreProperties =
         }
     }
 
+/** Resolves storeFile from keystore.properties (absolute or project-relative). */
+private fun resolveKeystoreFile(path: String): File {
+    val trimmed = path.trim()
+    return if (trimmed.startsWith("/")) {
+        file(trimmed)
+    } else {
+        rootProject.file(trimmed)
+    }
+}
+
+private fun configuredReleaseKeystore(): File? {
+    if (!keystorePropertiesFile.exists()) return null
+    val path = keystoreProperties.getProperty("storeFile")?.trim().orEmpty()
+    if (path.isEmpty()) return null
+    val ks = resolveKeystoreFile(path)
+    return ks.takeIf { it.isFile }
+}
+
 android {
     namespace = "com.beatiq.music"
     compileSdk {
@@ -30,8 +49,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // Increment versionCode for every Play upload (must strictly increase).
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         val productionApi = "https://beatiq.onrender.com/api/v1/"
         buildConfigField("String", "API_BASE_URL", "\"${productionApi.escapeForBuildConfig()}\"")
@@ -53,8 +72,9 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
-                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile")!!.trim())
+            val ks = configuredReleaseKeystore()
+            if (ks != null) {
+                storeFile = ks
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
@@ -86,7 +106,7 @@ android {
             isShrinkResources = true
             isDebuggable = false
             signingConfig =
-                if (keystorePropertiesFile.exists()) {
+                if (configuredReleaseKeystore() != null) {
                     signingConfigs.getByName("release")
                 } else {
                     signingConfigs.getByName("debug")
@@ -140,14 +160,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-}
-
-gradle.taskGraph.whenReady {
-    if (hasTask(":app:bundleRelease") && !keystorePropertiesFile.exists()) {
-        logger.warn(
-            "keystore.properties not found — :app:bundleRelease will use the debug keystore. " +
-                "For Play Console upload, add keystore.properties or use Android Studio Generate Signed Bundle. " +
-                "See keystore.properties.example and docs/GOOGLE_PLAY_RELEASE.md",
-        )
-    }
 }
