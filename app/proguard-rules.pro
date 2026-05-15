@@ -16,7 +16,7 @@
 
 # Media3 / playback service
 -keep class * extends androidx.media3.session.MediaSessionService { *; }
--keep class com.beatiq.app.services.playback.** { *; }
+-keep class com.beatiq.music.services.playback.** { *; }
 
 # Kotlin coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}

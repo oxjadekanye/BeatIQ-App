@@ -2,7 +2,7 @@
 
 ## Preconditions
 
-- `applicationId`: **`com.beatiq.app`** (stable; do not change without Play Console app migration).
+- `applicationId`: **`com.beatiq.music`** (stable; do not change without Play Console app migration).
 - **Release** builds always use **`https://beatiq.onrender.com/api/v1/`** for `BuildConfig.API_BASE_URL`. Debug builds may override via `local.properties` → `beatiq.api.base.url`.
 - **Release** uses `app/src/release/res/xml/network_security_config.xml` (no cleartext). Main manifest still references `@xml/network_security_config`; the release source set overrides it.
 - **Brand asset:** `beatiq_brand_logo` is stored as **JPEG** (`res/drawable/beatiq_brand_logo.jpg`) so AAPT2 release compiles succeed (mislabeled `.png` fails R8 merge).
