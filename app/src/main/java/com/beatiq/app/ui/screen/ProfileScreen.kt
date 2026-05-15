@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.beatiq.app.R
 import com.beatiq.app.core.auth.AuthPreferences
 import com.beatiq.app.ui.components.BeatIQBackButton
@@ -81,7 +83,17 @@ fun ProfileScreen(
     val photoFile = remember(photoKey) { File(context.filesDir, "${photoKey}_profile_photo.jpg") }
     var photoVersion by remember { mutableIntStateOf(0) }
     var showLogoutConfirm by remember { mutableStateOf(false) }
+    var showRemovePhotoConfirm by remember { mutableStateOf(false) }
     val hasPhoto = remember(photoVersion, photoFile) { photoFile.exists() && photoFile.length() > 0L }
+
+    val avatarImageRequest =
+        remember(photoFile, photoVersion, context) {
+            ImageRequest.Builder(context)
+                .data(photoFile)
+                .memoryCacheKey("${photoFile.absolutePath}#v$photoVersion")
+                .diskCacheKey("${photoFile.absolutePath}#v$photoVersion")
+                .build()
+        }
 
     val pickGallery =
         rememberLauncherForActivityResult(
@@ -89,8 +101,10 @@ fun ProfileScreen(
         ) { uri: Uri? ->
             if (uri == null) return@rememberLauncherForActivityResult
             runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    photoFile.outputStream().use { out -> input.copyTo(out) }
+                val input = context.contentResolver.openInputStream(uri) ?: return@rememberLauncherForActivityResult
+                input.use { stream ->
+                    if (photoFile.exists()) photoFile.delete()
+                    photoFile.outputStream().use { out -> stream.copyTo(out) }
                 }
                 photoVersion++
             }
@@ -109,7 +123,8 @@ fun ProfileScreen(
         ) { granted ->
             if (!granted) return@rememberLauncherForActivityResult
             runCatching {
-                if (!photoFile.exists()) photoFile.createNewFile()
+                if (photoFile.exists()) photoFile.delete()
+                photoFile.createNewFile()
                 val uri =
                     FileProvider.getUriForFile(
                         context,
@@ -161,7 +176,7 @@ fun ProfileScreen(
                 ) {
                     if (hasPhoto) {
                         AsyncImage(
-                            model = photoFile,
+                            model = avatarImageRequest,
                             contentDescription = stringResource(R.string.profile_avatar_content),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
@@ -200,6 +215,23 @@ fun ProfileScreen(
                         },
                     ) {
                         Text(stringResource(R.string.profile_choose_from_library))
+                    }
+                }
+                if (hasPhoto) {
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = { showRemovePhotoConfirm = true },
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.profile_remove_photo))
+                        }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -273,6 +305,34 @@ fun ProfileScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showLogoutConfirm = false }) {
+                            Text(stringResource(R.string.action_cancel))
+                        }
+                    },
+                )
+            }
+            if (showRemovePhotoConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showRemovePhotoConfirm = false },
+                    title = { Text(stringResource(R.string.profile_remove_photo_title)) },
+                    text = { Text(stringResource(R.string.profile_remove_photo_message)) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showRemovePhotoConfirm = false
+                                runCatching {
+                                    if (photoFile.exists()) photoFile.delete()
+                                    photoVersion++
+                                }
+                            },
+                        ) {
+                            Text(
+                                stringResource(R.string.profile_remove_photo_confirm),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showRemovePhotoConfirm = false }) {
                             Text(stringResource(R.string.action_cancel))
                         }
                     },

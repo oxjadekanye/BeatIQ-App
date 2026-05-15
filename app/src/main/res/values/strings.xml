@@ -192,6 +192,10 @@
     <string name="profile_change_photo">Change profile photo</string>
     <string name="profile_take_selfie">Take selfie</string>
     <string name="profile_choose_from_library">Choose from library</string>
+    <string name="profile_remove_photo">Remove profile photo</string>
+    <string name="profile_remove_photo_title">Remove profile photo?</string>
+    <string name="profile_remove_photo_message">Your saved profile picture will be deleted from this device.</string>
+    <string name="profile_remove_photo_confirm">Remove</string>
 
     <string name="settings_show_lyrics">Show lyrics while playing</string>
     <string name="player_lyrics_toggle">Lyrics</string>
