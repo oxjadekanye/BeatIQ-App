@@ -235,7 +235,6 @@
     <string name="auth_full_name">Full name</string>
     <string name="auth_birth_month_year_label">Date of birth (month &amp; year): %1$s</string>
     <string name="auth_create_account_submit">Create account</string>
-    <string name="auth_logout">Log out</string>
     <string name="auth_per_user_notice">Your library, playlists, and downloads are stored only on this device for your account and are not shared with other users.</string>
     <string name="auth_error_missing_credentials">Enter email and password.</string>
     <string name="auth_error_email_format">Enter a valid email address (for example oxj.adekanye@gmail.com). BeatIQ signs you in with email, not username.</string>
