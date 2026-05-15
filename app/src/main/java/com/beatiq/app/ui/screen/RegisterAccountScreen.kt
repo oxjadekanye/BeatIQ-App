@@ -143,12 +143,17 @@ fun RegisterAccountScreen(
                         error = context.getString(R.string.auth_error_password_mismatch)
                         return@Button
                     }
+                    val trimmedEmail = email.trim()
+                    if (trimmedEmail.isBlank() || !trimmedEmail.contains('@') || trimmedEmail.length < 5) {
+                        error = context.getString(R.string.auth_error_email_format)
+                        return@Button
+                    }
                     busy = true
                     scope.launch {
                         when (
                             val r =
                                 BeatIQAuthRepository.register(
-                                    email = email,
+                                    email = trimmedEmail,
                                     password = password,
                                     passwordConfirm = passwordConfirm,
                                     fullName = fullName,

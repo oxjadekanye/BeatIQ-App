@@ -148,20 +148,30 @@ object BeatIQAuthRepository {
             val o = JSONObject(json)
             readDetailValue(o, "detail")
                 ?: readStringArray(o, "non_field_errors")
-                ?: o.keys().asSequence().firstOrNull { it != "code" }?.let { k ->
-                    when (val v = o.get(k)) {
-                        is JSONArray ->
-                            (0 until v.length()).joinToString("\n") { i ->
-                                when (val item = v.get(i)) {
-                                    is String -> item
-                                    else -> item.toString()
-                                }
-                            }.takeIf { it.isNotBlank() }
-                        is String -> v.takeIf { it.isNotBlank() }
-                        else -> null
-                    }
-                }
+                ?: flattenFieldErrors(o)
         }.getOrNull()
+
+    /** DRF validation errors: one line per field so users see every problem, not an arbitrary first key. */
+    private fun flattenFieldErrors(o: JSONObject): String? {
+        val parts = mutableListOf<String>()
+        for (k in o.keys().asSequence().filter { it != "code" }) {
+            when (val v = o.get(k)) {
+                is JSONArray -> {
+                    val joined =
+                        (0 until v.length()).joinToString(" ") { i ->
+                            when (val item = v.get(i)) {
+                                is String -> item
+                                else -> item.toString()
+                            }
+                        }.trim()
+                    if (joined.isNotBlank()) parts.add("$k: $joined")
+                }
+                is String -> if (v.isNotBlank()) parts.add("$k: $v")
+                else -> Unit
+            }
+        }
+        return parts.joinToString("\n").takeIf { it.isNotBlank() }
+    }
 
     private fun readDetailValue(o: JSONObject, key: String): String? {
         if (!o.has(key)) return null

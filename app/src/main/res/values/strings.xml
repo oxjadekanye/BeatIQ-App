@@ -115,6 +115,10 @@
     <string name="profile_setting_storage">Storage &amp; data</string>
     <string name="profile_setting_privacy">Privacy</string>
     <string name="profile_setting_legal">Legal &amp; policies</string>
+    <string name="profile_sign_out">Sign out</string>
+    <string name="profile_sign_out_title">Sign out?</string>
+    <string name="profile_sign_out_message">You will need to sign in again to use your account on this device.</string>
+    <string name="profile_sign_out_confirm">Sign out</string>
 
     <string name="legal_screen_title">Legal &amp; policies</string>
     <string name="legal_company_block">BeatIQ is a product of Aurexus Group Ltd.\nUnit A, 82 James Carter Road\nMildenhall\nBury St Edmunds\nSuffolk\nIP28 7DE\nUnited Kingdom</string>
