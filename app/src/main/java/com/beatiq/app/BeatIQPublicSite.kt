@@ -9,4 +9,5 @@ object BeatIQPublicSite {
     const val PRIVACY_POLICY_URL: String = "$BASE_URL/privacy-policy/"
     const val TERMS_URL: String = "$BASE_URL/terms-and-conditions/"
     const val COOKIE_POLICY_URL: String = "$BASE_URL/cookie-policy/"
+    const val DELETE_ACCOUNT_URL: String = "$BASE_URL/delete-account/"
 }

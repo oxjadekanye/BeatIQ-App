@@ -125,6 +125,7 @@
     <string name="legal_open_privacy">Open Privacy Policy</string>
     <string name="legal_open_terms">Open Terms and Conditions</string>
     <string name="legal_open_cookies">Open Cookie Policy</string>
+    <string name="legal_open_delete_account">Delete Account</string>
     <string name="legal_contact_hint">Contact: admin@beatiq.co.uk</string>
 
     <string name="playback_notification_channel_name">Playback</string>

@@ -84,6 +84,13 @@ fun LegalScreen(onBack: () -> Unit) {
             ) {
                 Text(stringResource(R.string.legal_open_cookies))
             }
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = { open(BeatIQPublicSite.DELETE_ACCOUNT_URL) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.legal_open_delete_account))
+            }
             Spacer(Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.legal_contact_hint),
