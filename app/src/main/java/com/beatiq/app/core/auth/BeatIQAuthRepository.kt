@@ -11,6 +11,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.InterruptedIOException
+import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
 data class AuthResult(
@@ -39,6 +41,15 @@ object BeatIQAuthRepository {
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
+            .build()
+
+    /** Longer timeouts: registration waits on server-side mail setup (SMTP) when Celery is not used. */
+    private val registerClient =
+        OkHttpClient.Builder()
+            .addInterceptor(BeatIQApiFailureLogger)
+            .connectTimeout(25, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .build()
 
     private fun baseUrl(): String = BuildConfig.API_BASE_URL.trimEnd('/') + "/"
@@ -97,7 +108,7 @@ object BeatIQAuthRepository {
                     .url(baseUrl() + "accounts/register/")
                     .post(body)
                     .build()
-            runCatching { client.newCall(req).execute() }
+            runCatching { registerClient.newCall(req).execute() }
                 .fold(
                     onSuccess = { resp ->
                         val text = resp.body?.string().orEmpty()
@@ -111,6 +122,15 @@ object BeatIQAuthRepository {
         }
 
     private fun describeNetworkFailure(e: Throwable): String {
+        var cur: Throwable? = e
+        while (cur != null) {
+            when (cur) {
+                is SocketTimeoutException,
+                is InterruptedIOException,
+                -> return "Connection timed out. The server may be slow or unreachable. Check your network and try again."
+            }
+            cur = cur.cause
+        }
         val msg = e.message?.trim().orEmpty()
         if (msg.isNotBlank()) return msg
         return "Network error (${e.javaClass.simpleName})"
