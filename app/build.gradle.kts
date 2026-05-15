@@ -29,8 +29,8 @@ android {
         applicationId = "com.beatiq.app"
         minSdk = 26
         targetSdk = 36
-        // Increment for every Play upload (must strictly increase).
-        versionCode = 10
+        // Increment versionCode for every Play upload (must strictly increase).
+        versionCode = 1
         versionName = "1.0.0"
 
         val productionApi = "https://beatiq.onrender.com/api/v1/"
