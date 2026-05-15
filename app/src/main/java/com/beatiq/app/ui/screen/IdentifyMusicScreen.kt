@@ -60,39 +60,48 @@ fun IdentifyMusicScreen(onBack: () -> Unit) {
             error = context.getString(R.string.identify_no_token)
             return
         }
-        runCatching {
-            if (recordFile.exists()) recordFile.delete()
-            val mr =
-                MediaRecorder().apply {
-                    setAudioSource(MediaRecorder.AudioSource.MIC)
-                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                    setAudioEncodingBitRate(128_000)
-                    setAudioSamplingRate(44_100)
-                    setOutputFile(recordFile.absolutePath)
-                    prepare()
-                    start()
-                }
-            recording = true
+        if (busy) return
+        scope.launch {
             busy = true
+            recording = true
             error = null
             match = null
-            scope.launch {
-                delay(7_200)
+            val captureErr =
                 withContext(Dispatchers.IO) {
                     runCatching {
-                        mr.stop()
-                        mr.release()
-                    }
+                        if (recordFile.exists()) recordFile.delete()
+                        val mr = MediaRecorder()
+                        mr.setAudioSource(MediaRecorder.AudioSource.MIC)
+                        mr.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                        mr.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                        mr.setAudioEncodingBitRate(128_000)
+                        mr.setAudioSamplingRate(44_100)
+                        mr.setOutputFile(recordFile.absolutePath)
+                        mr.prepare()
+                        mr.start()
+                        try {
+                            delay(7_200)
+                        } finally {
+                            runCatching { mr.stop() }
+                            runCatching { mr.release() }
+                        }
+                    }.exceptionOrNull()
                 }
-                recording = false
-                val result = withContext(Dispatchers.IO) { AuddIdentifyClient.identify(recordFile) }
-                result.onSuccess { match = it }.onFailure { e -> error = e.message ?: "Error" }
-                busy = false
-            }
-        }.onFailure { e ->
-            error = e.message
             recording = false
+            if (captureErr != null) {
+                error = captureErr.message ?: captureErr.toString()
+                busy = false
+                return@launch
+            }
+            if (!recordFile.exists() || recordFile.length() < 512L) {
+                error = context.getString(R.string.identify_recording_too_short)
+                busy = false
+                return@launch
+            }
+            val result = withContext(Dispatchers.IO) { AuddIdentifyClient.identify(recordFile) }
+            result
+                .onSuccess { match = it }
+                .onFailure { e -> error = e.message ?: context.getString(R.string.identify_error_generic) }
             busy = false
         }
     }

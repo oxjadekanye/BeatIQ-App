@@ -207,6 +207,8 @@
     <string name="identify_listening">Listening…</string>
     <string name="identify_no_token">Add audd.api.token to local.properties to enable recognition.</string>
     <string name="identify_mic_denied">Microphone permission is required to capture audio for identification.</string>
+    <string name="identify_recording_too_short">Recording was too short. Try again and keep the mic near the music.</string>
+    <string name="identify_error_generic">Could not identify this sample. Try again or check your connection.</string>
     <string name="identify_download_preview">Download preview (if available)</string>
     <string name="discover_identify_section">What’s playing?</string>
     <string name="discover_identify_body">Identify a song from the room, then optionally queue a legal preview download.</string>

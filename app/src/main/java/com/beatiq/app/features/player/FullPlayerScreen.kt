@@ -8,6 +8,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +46,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +67,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import com.beatiq.app.R
+import com.beatiq.app.core.lyrics.LrcLine
+import com.beatiq.app.core.lyrics.LrcLyricsParser
 import com.beatiq.app.core.lyrics.LrclibLyricsClient
 import com.beatiq.app.core.prefs.BeatIQPreferences
 import com.beatiq.app.core.utils.formatDurationMs
@@ -79,7 +86,8 @@ fun FullPlayerScreen(
     val context = LocalContext.current
     val prefs = remember { BeatIQPreferences(context) }
     var showLyrics by remember { mutableStateOf(prefs.showLyricsWhilePlaying) }
-    var lyricsBody by remember { mutableStateOf<String?>(null) }
+    var lyricsPlain by remember { mutableStateOf<String?>(null) }
+    var syncedLrcLines by remember { mutableStateOf<List<LrcLine>>(emptyList()) }
     val state by RepositoryProvider.playerRepository.playbackUiState.collectAsStateWithLifecycle()
 
     val song = state.currentSong
@@ -102,19 +110,51 @@ fun FullPlayerScreen(
 
     LaunchedEffect(song.id, song.title, song.artist, song.album, showLyrics) {
         if (!showLyrics) {
-            lyricsBody = null
+            lyricsPlain = null
+            syncedLrcLines = emptyList()
             return@LaunchedEffect
         }
-        lyricsBody = null
+        lyricsPlain = null
+        syncedLrcLines = emptyList()
         val fetched =
             LrclibLyricsClient.fetchLyrics(
                 artist = song.artist,
                 title = song.title,
                 album = song.album,
             )
-        lyricsBody =
-            fetched?.plainLyrics?.takeIf { it.isNotBlank() }
-                ?: fetched?.syncedLyrics?.takeIf { it.isNotBlank() }
+        val synced = fetched?.syncedLyrics?.takeIf { it.isNotBlank() }
+        val plain = fetched?.plainLyrics?.takeIf { it.isNotBlank() }
+        when {
+            !synced.isNullOrBlank() -> {
+                val parsed = LrcLyricsParser.parse(synced)
+                if (parsed.isNotEmpty()) {
+                    syncedLrcLines = parsed
+                    lyricsPlain = null
+                } else {
+                    syncedLrcLines = emptyList()
+                    lyricsPlain = plain ?: synced
+                }
+            }
+            !plain.isNullOrBlank() -> lyricsPlain = plain
+        }
+    }
+
+    val lyricsLazyListState = rememberLazyListState()
+    LaunchedEffect(song.id, syncedLrcLines) {
+        if (syncedLrcLines.isNotEmpty()) {
+            lyricsLazyListState.scrollToItem(0)
+        }
+    }
+    val lrcActiveIndex by remember(song.id, syncedLrcLines) {
+        derivedStateOf {
+            LrcLyricsParser.activeLineIndex(syncedLrcLines, state.positionMs)
+        }
+    }
+    LaunchedEffect(lrcActiveIndex, syncedLrcLines) {
+        if (syncedLrcLines.isEmpty()) return@LaunchedEffect
+        if (lrcActiveIndex >= 0 && lrcActiveIndex < syncedLrcLines.size) {
+            lyricsLazyListState.scrollToItem(lrcActiveIndex)
+        }
     }
 
     Box(
@@ -219,18 +259,64 @@ fun FullPlayerScreen(
                 }
             }
             if (showLyrics) {
-                val body = lyricsBody
-                Text(
-                    text =
-                        body
-                            ?: stringResource(R.string.player_lyrics_loading),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                )
+                when {
+                    syncedLrcLines.isNotEmpty() -> {
+                        LazyColumn(
+                            state = lyricsLazyListState,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 240.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            itemsIndexed(syncedLrcLines, key = { i, line -> "${song.id}-$i-${line.timeMs}" }) { i, line ->
+                                val isActive = i == lrcActiveIndex
+                                Text(
+                                    text = line.text,
+                                    style =
+                                        if (isActive) {
+                                            MaterialTheme.typography.titleMedium
+                                        } else {
+                                            MaterialTheme.typography.bodySmall
+                                        },
+                                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                                    color =
+                                        if (isActive) {
+                                            Color.White
+                                        } else {
+                                            Color.White.copy(alpha = 0.68f)
+                                        },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                                )
+                            }
+                        }
+                    }
+                    lyricsPlain != null -> {
+                        Text(
+                            text = lyricsPlain.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                        )
+                    }
+                    else -> {
+                        Text(
+                            text = stringResource(R.string.player_lyrics_loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(12.dp))
             Row(
