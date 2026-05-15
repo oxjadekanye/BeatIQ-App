@@ -11,7 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.beatiq.app.R
 import com.beatiq.app.core.auth.BeatIQAuthRepository
@@ -47,6 +53,8 @@ fun RegisterAccountScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordConfirmVisible by remember { mutableStateOf(false) }
     var birthYear by remember { mutableIntStateOf(1995) }
     var birthMonth by remember { mutableIntStateOf(1) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -114,7 +122,36 @@ fun RegisterAccountScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text(stringResource(R.string.auth_password)) },
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation =
+                    if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                trailingIcon = {
+                    IconButton(
+                        onClick = { passwordVisible = !passwordVisible },
+                        enabled = !busy,
+                    ) {
+                        Icon(
+                            imageVector =
+                                if (passwordVisible) {
+                                    Icons.Outlined.VisibilityOff
+                                } else {
+                                    Icons.Outlined.Visibility
+                                },
+                            contentDescription =
+                                stringResource(
+                                    if (passwordVisible) {
+                                        R.string.auth_hide_password
+                                    } else {
+                                        R.string.auth_show_password
+                                    },
+                                ),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
             )
             OutlinedTextField(
                 value = passwordConfirm,
@@ -122,7 +159,36 @@ fun RegisterAccountScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text(stringResource(R.string.auth_password_confirm)) },
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation =
+                    if (passwordConfirmVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                trailingIcon = {
+                    IconButton(
+                        onClick = { passwordConfirmVisible = !passwordConfirmVisible },
+                        enabled = !busy,
+                    ) {
+                        Icon(
+                            imageVector =
+                                if (passwordConfirmVisible) {
+                                    Icons.Outlined.VisibilityOff
+                                } else {
+                                    Icons.Outlined.Visibility
+                                },
+                            contentDescription =
+                                stringResource(
+                                    if (passwordConfirmVisible) {
+                                        R.string.auth_hide_password
+                                    } else {
+                                        R.string.auth_show_password
+                                    },
+                                ),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
             )
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
