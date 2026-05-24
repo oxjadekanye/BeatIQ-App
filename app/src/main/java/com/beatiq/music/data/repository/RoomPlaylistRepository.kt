@@ -1,5 +1,6 @@
 package com.beatiq.music.data.repository
 
+import android.util.Log
 import com.beatiq.music.core.database.PlaylistDao
 import com.beatiq.music.core.database.PlaylistEntity
 import com.beatiq.music.core.database.SongDao
@@ -58,16 +59,39 @@ class RoomPlaylistRepository(
 
     override suspend fun addSongToPlaylist(playlistId: String, songId: String): Boolean =
         withContext(Dispatchers.IO) {
-            if (dao.getPlaylist(playlistId) == null) return@withContext false
-            if (songDao.getById(songId) == null) return@withContext false
-            runCatching {
-                dao.addSongToPlaylist(playlistId, songId, System.currentTimeMillis())
-            }.isSuccess
+            if (dao.getPlaylist(playlistId) == null) {
+                Log.w(TAG, "addSongToPlaylist: playlist missing id=$playlistId")
+                return@withContext false
+            }
+            if (songDao.getById(songId) == null) {
+                Log.w(TAG, "addSongToPlaylist: song missing id=$songId playlist=$playlistId")
+                return@withContext false
+            }
+            val saved =
+                runCatching {
+                    dao.addSongToPlaylist(playlistId, songId, System.currentTimeMillis())
+                }.getOrElse {
+                    Log.e(TAG, "addSongToPlaylist: insert failed playlist=$playlistId song=$songId", it)
+                    return@withContext false
+                }
+            if (!saved) {
+                Log.w(TAG, "addSongToPlaylist: link not saved playlist=$playlistId song=$songId")
+                return@withContext false
+            }
+            val verified = dao.countPlaylistSongLink(playlistId, songId) > 0
+            if (!verified) {
+                Log.w(TAG, "addSongToPlaylist: verify failed playlist=$playlistId song=$songId")
+            }
+            verified
         }
 
     override suspend fun removeSongFromPlaylist(playlistId: String, songId: String) {
         withContext(Dispatchers.IO) {
             dao.removeSongFromPlaylist(playlistId, songId, System.currentTimeMillis())
         }
+    }
+
+    companion object {
+        private const val TAG = "BeatIQ.Playlist"
     }
 }

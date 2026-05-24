@@ -1,5 +1,9 @@
 package com.beatiq.music.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,7 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -29,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.beatiq.music.R
 import com.beatiq.music.data.model.OnlineRecommendation
 import com.beatiq.music.presentation.home.HomeGenreTab
+import com.beatiq.music.presentation.home.HomeRecSection
+import com.beatiq.music.presentation.home.HomeRecommendationBadges
 
 @Composable
 fun HomeGenreTabRow(
@@ -40,15 +46,16 @@ fun HomeGenreTabRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LazyRow(
             modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 4.dp),
         ) {
-            items(HomeGenreTab.all, key = { it.name }) { tab ->
+            items(HomeGenreTab.all.size, key = { HomeGenreTab.all[it].name }) { index ->
+                val tab = HomeGenreTab.all[index]
                 FilterChip(
                     selected = tab == selected,
                     onClick = { onSelect(tab) },
@@ -56,11 +63,12 @@ fun HomeGenreTabRow(
                         Text(
                             text = tab.label,
                             style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (tab == selected) FontWeight.SemiBold else FontWeight.Normal,
                         )
                     },
                     colors =
                         FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
                             selectedLabelColor = Color.White,
                         ),
                 )
@@ -82,48 +90,65 @@ fun AiSongGridPager(
     tracks: List<OnlineRecommendation>,
     onTrackClick: (OnlineRecommendation) -> Unit,
     modifier: Modifier = Modifier,
+    tasteArtist: String? = null,
+    isPlaying: (OnlineRecommendation) -> Boolean = { false },
+    contentVisible: Boolean = true,
 ) {
     val pages = tracks.chunked(4)
     val pageCount = pages.size.coerceAtLeast(1)
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    Column(modifier) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            pageSpacing = 12.dp,
-        ) { page ->
-            val rowItems = pages.getOrElse(page) { emptyList() }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                rowItems.forEach { rec ->
-                    OnlineRecommendationCard(
-                        recommendation = rec,
-                        onClick = { onTrackClick(rec) },
-                        modifier = Modifier.weight(1f),
-                        compact = true,
-                    )
-                }
-                repeat((4 - rowItems.size).coerceAtLeast(0)) {
-                    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+    AnimatedVisibility(
+        visible = contentVisible,
+        enter = fadeIn(tween(360)) + slideInVertically(tween(360)) { it / 4 },
+        modifier = modifier,
+    ) {
+        Column {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                pageSpacing = 12.dp,
+            ) { page ->
+                val rowItems = pages.getOrElse(page) { emptyList() }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    rowItems.forEachIndexed { index, rec ->
+                        OnlineRecommendationCard(
+                            recommendation = rec,
+                            onClick = { onTrackClick(rec) },
+                            modifier = Modifier.weight(1f),
+                            compact = true,
+                            badges =
+                                HomeRecommendationBadges.forItem(
+                                    rec,
+                                    HomeRecSection.GRID,
+                                    tasteArtist,
+                                    page * 4 + index,
+                                ),
+                            isPlayingMatch = isPlaying(rec),
+                        )
+                    }
+                    repeat((4 - rowItems.size).coerceAtLeast(0)) {
+                        androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                    }
                 }
             }
-        }
-        if (pageCount > 1) {
-            Text(
-                text =
-                    stringResource(
-                        R.string.home_swipe_more,
-                        pagerState.currentPage + 1,
-                        pageCount,
-                    ),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-            )
+            if (pageCount > 1) {
+                Text(
+                    text =
+                        stringResource(
+                            R.string.home_swipe_more,
+                            pagerState.currentPage + 1,
+                            pageCount,
+                        ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }
@@ -133,20 +158,39 @@ fun AiRecommendationRow(
     title: String,
     items: List<OnlineRecommendation>,
     onTrackClick: (OnlineRecommendation) -> Unit,
+    section: HomeRecSection,
+    tasteArtist: String? = null,
+    isPlaying: (OnlineRecommendation) -> Boolean = { false },
+    contentVisible: Boolean = true,
 ) {
     if (items.isEmpty()) return
-    if (title.isNotBlank()) {
-        SectionHeader(title = title)
-    }
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+    AnimatedVisibility(
+        visible = contentVisible,
+        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 5 },
     ) {
-        items(items, key = { it.id }) { rec ->
-            OnlineRecommendationCard(
-                recommendation = rec,
-                onClick = { onTrackClick(rec) },
-            )
+        Column {
+            if (title.isNotBlank()) {
+                SectionHeader(title = title)
+            }
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+            ) {
+                itemsIndexed(items, key = { _, rec -> rec.id }) { index, rec ->
+                    OnlineRecommendationCard(
+                        recommendation = rec,
+                        onClick = { onTrackClick(rec) },
+                        badges =
+                            HomeRecommendationBadges.forItem(
+                                rec,
+                                section,
+                                tasteArtist,
+                                index,
+                            ),
+                        isPlayingMatch = isPlaying(rec),
+                    )
+                }
+            }
         }
     }
 }

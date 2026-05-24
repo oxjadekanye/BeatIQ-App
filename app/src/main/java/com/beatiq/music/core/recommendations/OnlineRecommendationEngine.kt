@@ -25,9 +25,14 @@ data class HomeAiFeed(
 )
 
 /**
- * Taste-aware online music discovery via the public iTunes Search API.
+ * Taste-aware online music discovery via the [Deezer Public API](https://developers.deezer.com/api).
+ *
+ * TODO(Phase-3): Optional [RecommendationSource] adapters for YouTube Music / SoundCloud (official APIs only).
  */
 object OnlineRecommendationEngine {
+
+    private const val BASE = "https://api.deezer.com"
+    private const val USER_AGENT = "BeatIQ/1.0 (Android; legal music discovery)"
 
     private val client =
         OkHttpClient.Builder()
@@ -41,13 +46,14 @@ object OnlineRecommendationEngine {
     ): HomeAiFeed =
         withContext(Dispatchers.IO) {
             val taste = buildTasteSuffix(library, genreTab)
+            val genreHint = genreTab.label
             coroutineScope {
-                val featuredDef = async { fetchSongs("${genreTab.searchTerm} $taste", 8) }
-                val gridDef = async { fetchSongs("${genreTab.searchTerm} latest $taste", 20) }
-                val trendingDef = async { fetchSongs("trending ${genreTab.searchTerm} 2024", 12) }
-                val albumsDef = async { fetchAlbums("${genreTab.searchTerm} album", 10) }
-                val djDef = async { fetchSongs("dj mix ${genreTab.searchTerm}", 10) }
-                val playlistsDef = async { fetchSongs("playlist ${genreTab.searchTerm} hits", 10) }
+                val featuredDef = async { fetchTracks("${genreTab.searchTerm} $taste", 8, genreHint) }
+                val gridDef = async { fetchTracks("${genreTab.searchTerm} latest $taste", 20, genreHint) }
+                val trendingDef = async { fetchTracks("trending ${genreTab.searchTerm}", 12, genreHint) }
+                val albumsDef = async { fetchAlbums("${genreTab.searchTerm} album", 10, genreHint) }
+                val djDef = async { fetchTracks("dj mix ${genreTab.searchTerm}", 10, genreHint) }
+                val playlistsDef = async { fetchPlaylists("${genreTab.searchTerm} hits playlist", 10, genreHint) }
                 val featured = featuredDef.await().take(8)
                 val featuredIds = featured.map { it.id }.toSet()
                 val gridPool =
@@ -66,7 +72,9 @@ object OnlineRecommendationEngine {
 
     suspend fun lookupArtwork(title: String, artist: String, album: String?): String? =
         withContext(Dispatchers.IO) {
-            fetchSongs("$title $artist", 1).firstOrNull()?.artworkUrl
+            fetchTracks("$title $artist", 1, album?.takeIf { it.isNotBlank() } ?: "Deezer")
+                .firstOrNull()
+                ?.artworkUrl
         }
 
     private fun buildTasteSuffix(library: List<Song>, tab: HomeGenreTab): String {
@@ -87,65 +95,158 @@ object OnlineRecommendationEngine {
         return items.filter { seen.add(it.id) }
     }
 
-    private fun fetchSongs(term: String, limit: Int): List<OnlineRecommendation> =
-        fetch(term, limit, entity = "song", isAlbum = false)
-
-    private fun fetchAlbums(term: String, limit: Int): List<OnlineRecommendation> =
-        fetch(term, limit, entity = "album", isAlbum = true)
-
-    private fun fetch(term: String, limit: Int, entity: String, isAlbum: Boolean): List<OnlineRecommendation> {
-        if (limit <= 0) return emptyList()
-        val encoded = URLEncoder.encode(term.trim(), StandardCharsets.UTF_8.name())
-        val url =
-            "https://itunes.apple.com/search?term=$encoded&media=music&entity=$entity&limit=${limit.coerceIn(1, 50)}"
-        val body =
-            runCatching {
-                client.newCall(Request.Builder().url(url).get().build()).execute().use { resp ->
-                    if (!resp.isSuccessful) return emptyList()
-                    resp.body?.string().orEmpty()
-                }
-            }.getOrElse { return emptyList() }
-        if (body.isBlank()) return emptyList()
-        return runCatching {
-            val arr = JSONObject(body).optJSONArray("results") ?: return emptyList()
+    private fun fetchTracks(term: String, limit: Int, genreHint: String): List<OnlineRecommendation> =
+        fetchDeezer("$BASE/search", term, limit) { arr ->
             buildList {
                 for (i in 0 until arr.length()) {
-                    val o = arr.getJSONObject(i)
-                    val parsed = parseResult(o, isAlbum) ?: continue
-                    if (parsed.artworkUrl.isBlank()) continue
-                    add(parsed)
+                    parseTrack(arr.getJSONObject(i), genreHint)?.let { add(it) }
                 }
-            }.sortedByDescending { it.releaseDate.orEmpty() }
+            }
+        }
+
+    private fun fetchAlbums(term: String, limit: Int, genreHint: String): List<OnlineRecommendation> =
+        fetchDeezer("$BASE/search/album", term, limit) { arr ->
+            buildList {
+                for (i in 0 until arr.length()) {
+                    parseAlbum(arr.getJSONObject(i), genreHint)?.let { add(it) }
+                }
+            }
+        }
+
+    private fun fetchPlaylists(term: String, limit: Int, genreHint: String): List<OnlineRecommendation> =
+        fetchDeezer("$BASE/search/playlist", term, limit) { arr ->
+            buildList {
+                for (i in 0 until arr.length()) {
+                    parsePlaylist(arr.getJSONObject(i), genreHint)?.let { add(it) }
+                }
+            }
+        }
+
+    private inline fun fetchDeezer(
+        endpoint: String,
+        term: String,
+        limit: Int,
+        parseArray: (org.json.JSONArray) -> List<OnlineRecommendation>,
+    ): List<OnlineRecommendation> {
+        if (limit <= 0 || term.isBlank()) return emptyList()
+        val encoded = URLEncoder.encode(term.trim(), StandardCharsets.UTF_8.name())
+        val url = "$endpoint?q=$encoded&limit=${limit.coerceIn(1, 50)}"
+        val body = httpGet(url) ?: return emptyList()
+        return runCatching {
+            val arr = JSONObject(body).optJSONArray("data") ?: return emptyList()
+            parseArray(arr)
+                .filter { it.artworkUrl.isNotBlank() }
+                .sortedByDescending { it.releaseDate.orEmpty() }
         }.getOrElse { emptyList() }
     }
 
-    private fun parseResult(o: JSONObject, isAlbum: Boolean): OnlineRecommendation? {
-        val trackId = o.optLong("trackId").takeIf { it > 0 } ?: o.optLong("collectionId")
-        if (trackId <= 0) return null
-        val title =
-            if (isAlbum) {
-                o.optString("collectionName").trim()
-            } else {
-                o.optString("trackName").trim()
+    private fun httpGet(url: String): String? =
+        runCatching {
+            val request =
+                Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .get()
+                    .build()
+            client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) return null
+                resp.body?.string().orEmpty().ifBlank { null }
             }
-        val artist = o.optString("artistName").trim()
+        }.getOrNull()
+
+    private fun parseTrack(o: JSONObject, genreHint: String): OnlineRecommendation? {
+        val id = o.optLong("id")
+        if (id <= 0) return null
+        val title = o.optString("title").trim()
+        val artist = o.optJSONObject("artist")?.optString("name")?.trim().orEmpty()
         if (title.isEmpty() || artist.isEmpty()) return null
-        val art =
-            o.optString("artworkUrl100")
-                .replace("100x100bb", "600x600bb")
-                .ifBlank { o.optString("artworkUrl60") }
-        val viewUrl = o.optString("trackViewUrl").ifBlank { o.optString("collectionViewUrl") }
+        val albumObj = o.optJSONObject("album")
+        val album = albumObj?.optString("title")?.trim().orEmpty()
+        val artwork = pickCover(albumObj) ?: return null
+        val preview = o.optString("preview").trim().takeIf { it.startsWith("https://") }
+        val link = o.optString("link").trim()
+        val releaseDate = albumObj?.optString("release_date")?.takeIf { it.isNotBlank() }
         return OnlineRecommendation(
-            id = "itunes_$trackId",
+            id = "deezer_track_$id",
             title = title,
             artist = artist,
-            album = o.optString("collectionName", ""),
-            artworkUrl = art,
-            genreHint = o.optString("primaryGenreName", ""),
-            trackViewUrl = viewUrl,
-            previewUrl = o.optString("previewUrl").takeIf { it.isNotBlank() },
-            releaseDate = o.optString("releaseDate").takeIf { it.isNotBlank() },
-            isAlbum = isAlbum,
+            album = album,
+            artworkUrl = artwork,
+            genreHint = genreHint,
+            trackViewUrl = link,
+            previewUrl = preview,
+            releaseDate = releaseDate,
+            isAlbum = false,
+            sourceLabel = "Deezer",
+            isPlayablePreview = !preview.isNullOrBlank(),
         )
+    }
+
+    private fun parseAlbum(o: JSONObject, genreHint: String): OnlineRecommendation? {
+        val id = o.optLong("id")
+        if (id <= 0) return null
+        val title = o.optString("title").trim()
+        val artist = o.optJSONObject("artist")?.optString("name")?.trim().orEmpty()
+        if (title.isEmpty()) return null
+        val artwork = pickCover(o) ?: return null
+        val link = o.optString("link").trim()
+        val releaseDate = o.optString("release_date").takeIf { it.isNotBlank() }
+        return OnlineRecommendation(
+            id = "deezer_album_$id",
+            title = title,
+            artist = artist.ifBlank { "Various artists" },
+            album = title,
+            artworkUrl = artwork,
+            genreHint = genreHint,
+            trackViewUrl = link,
+            previewUrl = null,
+            releaseDate = releaseDate,
+            isAlbum = true,
+            sourceLabel = "Deezer",
+            isPlayablePreview = false,
+        )
+    }
+
+    private fun parsePlaylist(o: JSONObject, genreHint: String): OnlineRecommendation? {
+        val id = o.optLong("id")
+        if (id <= 0) return null
+        val title = o.optString("title").trim()
+        if (title.isEmpty()) return null
+        val curator = o.optJSONObject("user")?.optString("name")?.trim().orEmpty()
+        val artwork =
+            sequenceOf(
+                o.optString("picture_xl"),
+                o.optString("picture_big"),
+                o.optString("picture_medium"),
+            ).firstOrNull { it.startsWith("https://") }
+                ?: return null
+        val link = o.optString("link").trim()
+        return OnlineRecommendation(
+            id = "deezer_playlist_$id",
+            title = title,
+            artist = curator.ifBlank { "Deezer" },
+            album = "",
+            artworkUrl = artwork,
+            genreHint = genreHint,
+            trackViewUrl = link,
+            previewUrl = null,
+            releaseDate = null,
+            isAlbum = false,
+            sourceLabel = "Deezer",
+            isPlayablePreview = false,
+        )
+    }
+
+    private fun pickCover(albumOrSelf: JSONObject?): String? {
+        if (albumOrSelf == null) return null
+        return sequenceOf(
+            albumOrSelf.optString("cover_xl"),
+            albumOrSelf.optString("cover_big"),
+            albumOrSelf.optString("cover_medium"),
+            albumOrSelf.optString("cover"),
+        ).firstOrNull { it.startsWith("https://") }
+            ?: albumOrSelf.optString("md5_image").trim().takeIf { it.isNotBlank() }?.let { md5 ->
+                "https://e-cdns-images.dzcdn.net/images/cover/$md5/500x500-000000-80-0-0.jpg"
+            }
     }
 }

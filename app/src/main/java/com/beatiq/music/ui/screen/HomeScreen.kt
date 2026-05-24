@@ -1,20 +1,19 @@
 package com.beatiq.music.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,30 +22,44 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.beatiq.music.R
 import com.beatiq.music.data.model.OnlineRecommendation
+import com.beatiq.music.features.library.RepositoryProvider
+import com.beatiq.music.presentation.home.HomeRecSection
+import com.beatiq.music.presentation.home.HomeSectionLabels
 import com.beatiq.music.presentation.home.HomeViewModel
 import com.beatiq.music.ui.components.AiRecommendationRow
 import com.beatiq.music.ui.components.AiSongGridPager
 import com.beatiq.music.ui.components.BeatIQBackButton
 import com.beatiq.music.ui.components.HomeGenreTabRow
+import com.beatiq.music.ui.components.HomeWelcomeHeader
 import com.beatiq.music.ui.components.OnlineTrackDetailSheet
 import com.beatiq.music.ui.components.PremiumScreenBackground
 import com.beatiq.music.ui.components.SectionHeader
-import java.time.LocalTime
+import com.beatiq.music.ui.components.homeGreetingForNow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onBack: () -> Unit) {
     val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val playback by RepositoryProvider.playerRepository
+        .playbackUiState
+        .collectAsStateWithLifecycle()
     var selectedTrack by remember { mutableStateOf<OnlineRecommendation?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val isPlayingRec: (OnlineRecommendation) -> Boolean = remember(playback) {
+        { rec ->
+            val current = playback.currentSong
+            playback.isPlaying &&
+                current != null &&
+                current.title.equals(rec.title, ignoreCase = true) &&
+                current.artist.equals(rec.artist, ignoreCase = true)
+        }
+    }
 
     selectedTrack?.let { track ->
         ModalBottomSheet(
@@ -60,11 +73,14 @@ fun HomeScreen(onBack: () -> Unit) {
         }
     }
 
+    val genre = state.selectedGenre
+    val contentReady = !state.isLoading
+
     PremiumScreenBackground {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item {
                 Row(
@@ -77,29 +93,14 @@ fun HomeScreen(onBack: () -> Unit) {
                 }
             }
             item {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
-                    Text(
-                        text = greetingLabel(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.home_headline),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        text = stringResource(R.string.home_sub_ai),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                HomeWelcomeHeader(
+                    greeting = homeGreetingForNow(),
+                    subline = HomeSectionLabels.welcomeSubline(),
+                )
             }
             item {
                 HomeGenreTabRow(
-                    selected = state.selectedGenre,
+                    selected = genre,
                     onSelect = vm::selectGenre,
                     onRefresh = vm::refreshAll,
                     isLoading = state.isLoading,
@@ -118,65 +119,87 @@ fun HomeScreen(onBack: () -> Unit) {
                 }
             } else {
                 item {
-                    SectionHeader(title = stringResource(R.string.home_section_ai_featured))
+                    AnimatedVisibility(
+                        visible = contentReady,
+                        enter = fadeIn(tween(320)),
+                    ) {
+                        SectionHeader(title = HomeSectionLabels.featured(genre))
+                    }
                 }
                 item {
                     AiRecommendationRow(
                         title = "",
                         items = state.featured,
                         onTrackClick = { selectedTrack = it },
+                        section = HomeRecSection.FEATURED,
+                        tasteArtist = state.tasteArtist,
+                        isPlaying = isPlayingRec,
+                        contentVisible = contentReady,
                     )
                 }
                 item {
-                    SectionHeader(title = stringResource(R.string.home_section_ai_grid))
+                    AnimatedVisibility(
+                        visible = contentReady,
+                        enter = fadeIn(tween(360)),
+                    ) {
+                        SectionHeader(title = HomeSectionLabels.grid(genre))
+                    }
                 }
                 item {
                     AiSongGridPager(
                         tracks = state.gridSixteen,
                         onTrackClick = { selectedTrack = it },
                         modifier = Modifier.padding(bottom = 8.dp),
+                        tasteArtist = state.tasteArtist,
+                        isPlaying = isPlayingRec,
+                        contentVisible = contentReady,
                     )
                 }
                 item {
                     AiRecommendationRow(
-                        title = stringResource(R.string.home_section_trending),
+                        title = HomeSectionLabels.trending(genre),
                         items = state.trending,
                         onTrackClick = { selectedTrack = it },
+                        section = HomeRecSection.TRENDING,
+                        tasteArtist = state.tasteArtist,
+                        isPlaying = isPlayingRec,
+                        contentVisible = contentReady,
                     )
                 }
                 item {
                     AiRecommendationRow(
-                        title = stringResource(R.string.home_section_trending_albums),
+                        title = HomeSectionLabels.albums(genre),
                         items = state.trendingAlbums,
                         onTrackClick = { selectedTrack = it },
+                        section = HomeRecSection.ALBUMS,
+                        tasteArtist = state.tasteArtist,
+                        isPlaying = isPlayingRec,
+                        contentVisible = contentReady,
                     )
                 }
                 item {
                     AiRecommendationRow(
-                        title = stringResource(R.string.home_section_dj_mix),
+                        title = HomeSectionLabels.djMixes(genre),
                         items = state.djMix,
                         onTrackClick = { selectedTrack = it },
+                        section = HomeRecSection.DJ_MIX,
+                        tasteArtist = state.tasteArtist,
+                        isPlaying = isPlayingRec,
+                        contentVisible = contentReady,
                     )
                 }
                 item {
                     AiRecommendationRow(
-                        title = stringResource(R.string.home_section_popular_playlists),
+                        title = HomeSectionLabels.popularPlaylists(genre),
                         items = state.popularPlaylists,
                         onTrackClick = { selectedTrack = it },
+                        section = HomeRecSection.PLAYLISTS,
+                        tasteArtist = state.tasteArtist,
+                        isPlaying = isPlayingRec,
+                        contentVisible = contentReady,
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun greetingLabel(): String {
-    val hour = LocalTime.now().hour
-    return when (hour) {
-        in 5..11 -> stringResource(R.string.home_greet_morning)
-        in 12..16 -> stringResource(R.string.home_greet_afternoon)
-        in 17..21 -> stringResource(R.string.home_greet_evening)
-        else -> stringResource(R.string.home_greet_night)
     }
 }

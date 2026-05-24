@@ -26,6 +26,7 @@ data class HomeAiUiState(
     val djMix: List<OnlineRecommendation> = emptyList(),
     val popularPlaylists: List<OnlineRecommendation> = emptyList(),
     val lastRefreshedAt: Long = 0L,
+    val tasteArtist: String? = null,
 )
 
 class HomeViewModel(
@@ -88,6 +89,14 @@ class HomeViewModel(
     }
 
     private fun applyFeed(feed: HomeAiFeed) {
+        val tasteArtist =
+            librarySnapshot
+                .groupingBy { it.artist.trim() }
+                .eachCount()
+                .entries
+                .maxByOrNull { it.value }
+                ?.key
+                ?.takeIf { it.isNotBlank() }
         _uiState.value =
             HomeAiUiState(
                 selectedGenre = feed.genreTab,
@@ -99,6 +108,7 @@ class HomeViewModel(
                 djMix = feed.djMix,
                 popularPlaylists = feed.popularPlaylists,
                 lastRefreshedAt = System.currentTimeMillis(),
+                tasteArtist = tasteArtist,
             )
     }
 

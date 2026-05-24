@@ -1,14 +1,25 @@
 package com.beatiq.music.ui.components
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -26,10 +37,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.beatiq.music.R
+import com.beatiq.music.presentation.home.HomeRecBadge
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -202,28 +215,91 @@ fun OnlineRecommendationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    badges: List<HomeRecBadge> = emptyList(),
+    isPlayingMatch: Boolean = false,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        label = "cardPressScale",
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (pressed) 6.dp else 3.dp,
+        label = "cardElevation",
+    )
+    val accent = artworkAccentColor(recommendation.artworkUrl)
+    val imageHeight = if (compact) 88.dp else 148.dp
+    val cardShape = RoundedCornerShape(20.dp)
+
     Card(
         onClick = onClick,
-        modifier = if (compact) modifier else modifier.width(148.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier =
+            (if (compact) modifier else modifier.width(152.dp))
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
+        shape = cardShape,
+        interactionSource = interactionSource,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
     ) {
         Column {
-            AsyncImage(
-                model = recommendation.artworkUrl,
-                contentDescription = recommendation.title,
-                modifier =
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(imageHeight),
+            ) {
+                AsyncImage(
+                    model = recommendation.artworkUrl,
+                    contentDescription = recommendation.title,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(imageHeight)
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+                Box(
                     Modifier
-                        .fillMaxWidth()
-                        .height(if (compact) 88.dp else 148.dp)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                contentScale = ContentScale.Crop,
-            )
-            Column(Modifier.padding(10.dp)) {
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        accent.copy(alpha = 0.22f),
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f),
+                                    ),
+                            ),
+                        ),
+                )
+                if (badges.isNotEmpty()) {
+                    Row(
+                        Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        badges.forEach { HomeRecBadgeChip(it) }
+                    }
+                }
+                if (isPlayingMatch) {
+                    Row(
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        MiniEqualizerBars()
+                    }
+                }
+            }
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
                 Text(
                     text = recommendation.title,
                     style = MaterialTheme.typography.titleSmall,

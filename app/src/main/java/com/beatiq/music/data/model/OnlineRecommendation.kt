@@ -1,6 +1,10 @@
 package com.beatiq.music.data.model
 
-/** Online track or album suggestion (iTunes Search API metadata). */
+import com.beatiq.music.core.browser.DirectAudioDownloadDetector
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
+/** Online track, album, or playlist suggestion (Deezer Public API metadata). */
 data class OnlineRecommendation(
     val id: String,
     val title: String,
@@ -8,15 +12,27 @@ data class OnlineRecommendation(
     val album: String,
     val artworkUrl: String,
     val genreHint: String,
+    /** Deezer web page for this track, album, or playlist. */
     val trackViewUrl: String,
     val previewUrl: String?,
     val releaseDate: String?,
     val isAlbum: Boolean = false,
+    /** Human-readable provider label, e.g. "Deezer". */
+    val sourceLabel: String? = "Deezer",
+    /** True when a 30s Deezer preview stream URL is available. */
+    val isPlayablePreview: Boolean = false,
 ) {
     val browserUrl: String
-        get() = trackViewUrl.ifBlank { "https://music.apple.com/search?term=${java.net.URLEncoder.encode("$title $artist", Charsets.UTF_8.name())}" }
+        get() =
+            trackViewUrl.ifBlank {
+                "https://www.deezer.com/search?q=${
+                    URLEncoder.encode("$title $artist", StandardCharsets.UTF_8.name())
+                }"
+            }
 
     val hasPreviewAudio: Boolean
-        get() = !previewUrl.isNullOrBlank() && previewUrl.contains(".m4a", ignoreCase = true) ||
-            previewUrl?.contains(".mp3", ignoreCase = true) == true
+        get() =
+            isPlayablePreview &&
+                !previewUrl.isNullOrBlank() &&
+                DirectAudioDownloadDetector.looksLikeDirectAudioFileUrl(previewUrl)
 }

@@ -43,8 +43,13 @@ interface PlaylistDao {
     )
     fun observeSongsInPlaylist(playlistId: String): Flow<List<SongEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPlaylistSong(link: PlaylistSongEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlaylistSong(link: PlaylistSongEntity): Long
+
+    @Query(
+        "SELECT COUNT(*) FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId",
+    )
+    suspend fun countPlaylistSongLink(playlistId: String, songId: String): Int
 
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId")
     suspend fun removeSong(playlistId: String, songId: String)
@@ -53,16 +58,25 @@ interface PlaylistDao {
     suspend fun maxSortIndex(playlistId: String): Int?
 
     @Transaction
-    suspend fun addSongToPlaylist(playlistId: String, songId: String, now: Long) {
+    suspend fun addSongToPlaylist(playlistId: String, songId: String, now: Long): Boolean {
+        if (countPlaylistSongLink(playlistId, songId) > 0) {
+            touchPlaylistUpdated(playlistId, now)
+            return true
+        }
         val next = (maxSortIndex(playlistId) ?: -1) + 1
-        insertPlaylistSong(
-            PlaylistSongEntity(
-                playlistId = playlistId,
-                songId = songId,
-                sortIndex = next,
-            ),
-        )
+        val rowId =
+            insertPlaylistSong(
+                PlaylistSongEntity(
+                    playlistId = playlistId,
+                    songId = songId,
+                    sortIndex = next,
+                ),
+            )
+        if (rowId == -1L) {
+            return countPlaylistSongLink(playlistId, songId) > 0
+        }
         touchPlaylistUpdated(playlistId, now)
+        return true
     }
 
     @Transaction

@@ -24,20 +24,28 @@ class RoomScannerRepository(
         for (s in fromApp) merged[s.filePath] = s
         val scanned = merged.values.toList()
         if (scanned.isNotEmpty()) {
-            val existing = dao.getAllOnce().associateBy { it.mediaStoreId }
-            val mergedEntities = scanned.map { song ->
-                val mediaId = song.effectiveMediaStoreId()
-                val old = existing[mediaId]
-                val base = song.toEntity(old?.recentlyPlayedAt)
-                if (old != null) {
-                    base.copy(
-                        playCount = old.playCount,
-                        isFavorite = old.isFavorite,
-                    )
-                } else {
-                    base
+            val existingByMediaId = dao.getAllOnce().associateBy { it.mediaStoreId }
+            val existingByPath = dao.getAllOnce().associateBy { it.filePath }
+            val mergedEntities =
+                scanned.map { song ->
+                    val mediaId = song.effectiveMediaStoreId()
+                    val old =
+                        existingByMediaId[mediaId]
+                            ?: existingByPath[song.filePath]
+                    val base = song.toEntity(old?.recentlyPlayedAt)
+                    if (old != null) {
+                        // Keep stable primary keys so playlist_songs FK rows are not CASCADE-deleted.
+                        base.copy(
+                            id = old.id,
+                            mediaStoreId = old.mediaStoreId,
+                            playCount = old.playCount,
+                            isFavorite = old.isFavorite,
+                            recentlyPlayedAt = old.recentlyPlayedAt,
+                        )
+                    } else {
+                        base
+                    }
                 }
-            }
             dao.upsertAll(mergedEntities)
         }
         dao.getAllOnce().map { it.toSong() }

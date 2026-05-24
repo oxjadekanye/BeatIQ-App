@@ -3,13 +3,14 @@ package com.beatiq.music.ui.components
 import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +33,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
 import com.beatiq.music.R
 import com.beatiq.music.core.browser.DirectAudioDownloadDetector
@@ -33,7 +43,6 @@ import com.beatiq.music.data.model.OnlineRecommendation
 import com.beatiq.music.features.library.RepositoryProvider
 import com.beatiq.music.ui.feedback.showBeatIQMessage
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
 fun OnlineTrackDetailSheet(
@@ -42,15 +51,42 @@ fun OnlineTrackDetailSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var previewPlaying by remember { mutableStateOf(false) }
+
+    val previewPlayer =
+        remember {
+            ExoPlayer.Builder(context).build().apply {
+                repeatMode = Player.REPEAT_MODE_OFF
+            }
+        }
+
+    DisposableEffect(previewPlayer) {
+        onDispose {
+            previewPlayer.release()
+        }
+    }
+
+    val accent = artworkAccentColor(track.artworkUrl)
 
     Surface(
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp,
+        tonalElevation = 10.dp,
+        shadowElevation = 12.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            Modifier.padding(20.dp),
+            Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors =
+                            listOf(
+                                accent.copy(alpha = 0.12f),
+                                MaterialTheme.colorScheme.surface,
+                            ),
+                    ),
+                )
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -81,8 +117,10 @@ fun OnlineTrackDetailSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    val label = track.sourceLabel ?: stringResource(R.string.home_deezer_source)
                     Text(
-                        text = track.genreHint,
+                        text = listOfNotNull(track.genreHint.takeIf { it.isNotBlank() }, label)
+                            .joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -99,9 +137,35 @@ fun OnlineTrackDetailSheet(
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.home_open_in_browser))
+                Text(stringResource(R.string.home_open_on_deezer))
             }
             val preview = track.previewUrl
+            if (track.isPlayablePreview && !preview.isNullOrBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        if (previewPlaying) {
+                            previewPlayer.pause()
+                            previewPlaying = false
+                        } else {
+                            previewPlayer.setMediaItem(MediaItem.fromUri(preview))
+                            previewPlayer.prepare()
+                            previewPlayer.play()
+                            previewPlaying = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        stringResource(
+                            if (previewPlaying) {
+                                R.string.home_stop_preview
+                            } else {
+                                R.string.home_play_preview
+                            },
+                        ),
+                    )
+                }
+            }
             if (!preview.isNullOrBlank() && DirectAudioDownloadDetector.looksLikeDirectAudioFileUrl(preview)) {
                 OutlinedButton(
                     onClick = {
@@ -122,7 +186,7 @@ fun OnlineTrackDetailSheet(
                 ) {
                     Text(stringResource(R.string.home_download_preview))
                 }
-            } else {
+            } else if (!track.isPlayablePreview) {
                 Text(
                     text = stringResource(R.string.home_download_hint),
                     style = MaterialTheme.typography.bodySmall,
