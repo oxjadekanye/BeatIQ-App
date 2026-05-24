@@ -63,10 +63,17 @@ private object BrowserDestinations {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OnlineMusicBrowserScreen(onBack: () -> Unit) {
+fun OnlineMusicBrowserScreen(
+    onBack: () -> Unit,
+    initialUrl: String? = null,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var urlBarText by remember { mutableStateOf(BrowserDestinations.GOOGLE) }
+    val startUrl =
+        remember(initialUrl) {
+            initialUrl?.let { HttpsUrlValidator.normalizedHttpsUrl(it) } ?: BrowserDestinations.GOOGLE
+        }
+    var urlBarText by remember { mutableStateOf(startUrl) }
     var pendingDownloadUrl by remember { mutableStateOf<String?>(null) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var browserHistoryCanGoBack by remember { mutableStateOf(false) }
@@ -288,7 +295,7 @@ fun OnlineMusicBrowserScreen(onBack: () -> Unit) {
                                 }
                             }
                             webViewRef = this
-                            loadUrl(BrowserDestinations.GOOGLE)
+                            loadUrl(startUrl)
                         }
                     },
                     onRelease = { view ->

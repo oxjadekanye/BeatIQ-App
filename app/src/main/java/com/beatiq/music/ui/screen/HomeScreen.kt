@@ -42,7 +42,10 @@ import com.beatiq.music.ui.components.homeGreetingForNow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onBack: () -> Unit) {
+fun HomeScreen(
+    onBack: () -> Unit,
+    onOpenInternalBrowser: (String) -> Unit = {},
+) {
     val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory)
     val state by vm.uiState.collectAsStateWithLifecycle()
     val playback by RepositoryProvider.playerRepository
@@ -53,11 +56,23 @@ fun HomeScreen(onBack: () -> Unit) {
 
     val isPlayingRec: (OnlineRecommendation) -> Boolean = remember(playback) {
         { rec ->
-            val current = playback.currentSong
-            playback.isPlaying &&
-                current != null &&
-                current.title.equals(rec.title, ignoreCase = true) &&
-                current.artist.equals(rec.artist, ignoreCase = true)
+            if (rec.opensInInternalBrowser) {
+                false
+            } else {
+                val current = playback.currentSong
+                playback.isPlaying &&
+                    current != null &&
+                    current.title.equals(rec.title, ignoreCase = true) &&
+                    current.artist.equals(rec.artist, ignoreCase = true)
+            }
+        }
+    }
+
+    val onRecommendationClick: (OnlineRecommendation) -> Unit = { rec ->
+        if (rec.opensInInternalBrowser) {
+            onOpenInternalBrowser(rec.browserUrl)
+        } else {
+            selectedTrack = rec
         }
     }
 
@@ -69,6 +84,7 @@ fun HomeScreen(onBack: () -> Unit) {
             OnlineTrackDetailSheet(
                 track = track,
                 onDismiss = { selectedTrack = null },
+                onOpenInternalBrowser = onOpenInternalBrowser,
             )
         }
     }
@@ -130,7 +146,7 @@ fun HomeScreen(onBack: () -> Unit) {
                     AiRecommendationRow(
                         title = "",
                         items = state.featured,
-                        onTrackClick = { selectedTrack = it },
+                        onTrackClick = onRecommendationClick,
                         section = HomeRecSection.FEATURED,
                         tasteArtist = state.tasteArtist,
                         isPlaying = isPlayingRec,
@@ -148,7 +164,7 @@ fun HomeScreen(onBack: () -> Unit) {
                 item {
                     AiSongGridPager(
                         tracks = state.gridSixteen,
-                        onTrackClick = { selectedTrack = it },
+                        onTrackClick = onRecommendationClick,
                         modifier = Modifier.padding(bottom = 8.dp),
                         tasteArtist = state.tasteArtist,
                         isPlaying = isPlayingRec,
@@ -159,7 +175,7 @@ fun HomeScreen(onBack: () -> Unit) {
                     AiRecommendationRow(
                         title = HomeSectionLabels.trending(genre),
                         items = state.trending,
-                        onTrackClick = { selectedTrack = it },
+                        onTrackClick = onRecommendationClick,
                         section = HomeRecSection.TRENDING,
                         tasteArtist = state.tasteArtist,
                         isPlaying = isPlayingRec,
@@ -170,7 +186,7 @@ fun HomeScreen(onBack: () -> Unit) {
                     AiRecommendationRow(
                         title = HomeSectionLabels.albums(genre),
                         items = state.trendingAlbums,
-                        onTrackClick = { selectedTrack = it },
+                        onTrackClick = onRecommendationClick,
                         section = HomeRecSection.ALBUMS,
                         tasteArtist = state.tasteArtist,
                         isPlaying = isPlayingRec,
@@ -181,7 +197,7 @@ fun HomeScreen(onBack: () -> Unit) {
                     AiRecommendationRow(
                         title = HomeSectionLabels.djMixes(genre),
                         items = state.djMix,
-                        onTrackClick = { selectedTrack = it },
+                        onTrackClick = onRecommendationClick,
                         section = HomeRecSection.DJ_MIX,
                         tasteArtist = state.tasteArtist,
                         isPlaying = isPlayingRec,
@@ -192,7 +208,7 @@ fun HomeScreen(onBack: () -> Unit) {
                     AiRecommendationRow(
                         title = HomeSectionLabels.popularPlaylists(genre),
                         items = state.popularPlaylists,
-                        onTrackClick = { selectedTrack = it },
+                        onTrackClick = onRecommendationClick,
                         section = HomeRecSection.PLAYLISTS,
                         tasteArtist = state.tasteArtist,
                         isPlaying = isPlayingRec,

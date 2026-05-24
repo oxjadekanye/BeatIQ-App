@@ -114,6 +114,12 @@ fun HomeRecBadgeChip(badge: HomeRecBadge) {
                     Color(0xFF3D6B8C).copy(alpha = 0.92f),
                     Color.White,
                 )
+            HomeRecBadge.OPENS_IN_YOUTUBE ->
+                Triple(
+                    stringResource(R.string.home_badge_opens_youtube),
+                    Color(0xFFB3261E).copy(alpha = 0.92f),
+                    Color.White,
+                )
         }
     val onContent =
         if (content.luminance() < 0.45f) Color.White else MaterialTheme.colorScheme.onSurface

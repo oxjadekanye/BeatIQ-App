@@ -165,7 +165,9 @@ private fun MainShell(
     val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
-    val immersiveBrowser = currentRoute == BeatIQInnerRoutes.ONLINE_BROWSER
+    val immersiveBrowser =
+        currentRoute == BeatIQInnerRoutes.ONLINE_BROWSER ||
+            currentRoute?.startsWith("online_browser_link/") == true
 
     val popToLanding: () -> Unit = {
         outerNavController.popBackStack(BeatIQRoutes.LANDING, inclusive = false)
@@ -253,7 +255,14 @@ private fun MainShell(
                     },
             ) {
                 composable(BeatIQInnerRoutes.HOME) {
-                    HomeScreen(onBack = popToLanding)
+                    HomeScreen(
+                        onBack = popToLanding,
+                        onOpenInternalBrowser = { url ->
+                            innerNavController.navigate(
+                                BeatIQInnerRoutes.onlineBrowserLink(NavEncoding.encode(url)),
+                            )
+                        },
+                    )
                 }
                 composable(BeatIQInnerRoutes.DISCOVER) {
                     DiscoverScreen(
@@ -299,6 +308,20 @@ private fun MainShell(
                 composable(BeatIQInnerRoutes.ONLINE_BROWSER) {
                     OnlineMusicBrowserScreen(
                         onBack = { innerNavController.popBackStack() },
+                    )
+                }
+                composable(
+                    route = BeatIQInnerRoutes.ONLINE_BROWSER_LINK_PATTERN,
+                    arguments = listOf(navArgument("startUrlKey") { type = NavType.StringType }),
+                ) { entry ->
+                    val key = entry.arguments?.getString("startUrlKey").orEmpty()
+                    val startUrl =
+                        runCatching { NavEncoding.decode(key) }
+                            .getOrNull()
+                            ?.takeIf { it.startsWith("https://") }
+                    OnlineMusicBrowserScreen(
+                        onBack = { innerNavController.popBackStack() },
+                        initialUrl = startUrl,
                     )
                 }
                 composable(BeatIQInnerRoutes.IDENTIFY_MUSIC) {

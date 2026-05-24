@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -40,6 +40,7 @@ import coil.compose.AsyncImage
 import com.beatiq.music.R
 import com.beatiq.music.core.browser.DirectAudioDownloadDetector
 import com.beatiq.music.data.model.OnlineRecommendation
+import com.beatiq.music.data.model.RecommendationProvider
 import com.beatiq.music.features.library.RepositoryProvider
 import com.beatiq.music.ui.feedback.showBeatIQMessage
 import kotlinx.coroutines.launch
@@ -48,6 +49,7 @@ import kotlinx.coroutines.launch
 fun OnlineTrackDetailSheet(
     track: OnlineRecommendation,
     onDismiss: () -> Unit,
+    onOpenInternalBrowser: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -67,6 +69,14 @@ fun OnlineTrackDetailSheet(
     }
 
     val accent = artworkAccentColor(track.artworkUrl)
+
+    fun openExternalBrowser() {
+        runCatching {
+            CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(track.browserUrl))
+        }.onFailure {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(track.browserUrl)))
+        }
+    }
 
     Surface(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
@@ -117,7 +127,12 @@ fun OnlineTrackDetailSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    val label = track.sourceLabel ?: stringResource(R.string.home_deezer_source)
+                    val label =
+                        track.sourceLabel
+                            ?: when (track.provider) {
+                                RecommendationProvider.YOUTUBE_MUSIC -> stringResource(R.string.home_youtube_source)
+                                else -> stringResource(R.string.home_deezer_source)
+                            }
                     Text(
                         text = listOfNotNull(track.genreHint.takeIf { it.isNotBlank() }, label)
                             .joinToString(" · "),
@@ -126,72 +141,99 @@ fun OnlineTrackDetailSheet(
                     )
                 }
             }
-            Button(
-                onClick = {
-                    runCatching {
-                        CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(track.browserUrl))
-                    }.onFailure {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(track.browserUrl)))
-                    }
-                    onDismiss()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.home_open_on_deezer))
-            }
-            val preview = track.previewUrl
-            if (track.isPlayablePreview && !preview.isNullOrBlank()) {
-                OutlinedButton(
-                    onClick = {
-                        if (previewPlaying) {
-                            previewPlayer.pause()
-                            previewPlaying = false
-                        } else {
-                            previewPlayer.setMediaItem(MediaItem.fromUri(preview))
-                            previewPlayer.prepare()
-                            previewPlayer.play()
-                            previewPlaying = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        stringResource(
-                            if (previewPlaying) {
-                                R.string.home_stop_preview
-                            } else {
-                                R.string.home_play_preview
-                            },
-                        ),
-                    )
-                }
-            }
-            if (!preview.isNullOrBlank() && DirectAudioDownloadDetector.looksLikeDirectAudioFileUrl(preview)) {
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            val result =
-                                RepositoryProvider.downloadsRepository.enqueueLegalFileDownload(
-                                    preview,
-                                    "${track.artist} — ${track.title}",
-                                )
-                            if (result.isSuccess) {
-                                showBeatIQMessage(context, context.getString(R.string.home_download_queued))
-                            } else {
-                                showBeatIQMessage(context, context.getString(R.string.home_download_unavailable))
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.home_download_preview))
-                }
-            } else if (!track.isPlayablePreview) {
+            if (track.isYoutubeOnly) {
                 Text(
-                    text = stringResource(R.string.home_download_hint),
+                    text = stringResource(R.string.home_opens_in_youtube),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (track.opensInInternalBrowser) {
+                Button(
+                    onClick = {
+                        onOpenInternalBrowser(track.browserUrl)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.home_open_in_beatiq_browser))
+                }
+                OutlinedButton(
+                    onClick = {
+                        openExternalBrowser()
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.home_open_external_browser))
+                }
+            } else {
+                Button(
+                    onClick = {
+                        openExternalBrowser()
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.home_open_on_deezer))
+                }
+                val preview = track.previewUrl
+                if (track.isPlayablePreview && !preview.isNullOrBlank()) {
+                    OutlinedButton(
+                        onClick = {
+                            if (previewPlaying) {
+                                previewPlayer.pause()
+                                previewPlaying = false
+                            } else {
+                                previewPlayer.setMediaItem(MediaItem.fromUri(preview))
+                                previewPlayer.prepare()
+                                previewPlayer.play()
+                                previewPlaying = true
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (previewPlaying) {
+                                    R.string.home_stop_preview
+                                } else {
+                                    R.string.home_play_preview
+                                },
+                            ),
+                        )
+                    }
+                }
+                if (!preview.isNullOrBlank() && DirectAudioDownloadDetector.looksLikeDirectAudioFileUrl(preview)) {
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                val result =
+                                    RepositoryProvider.downloadsRepository.enqueueLegalFileDownload(
+                                        preview,
+                                        "${track.artist} — ${track.title}",
+                                    )
+                                if (result.isSuccess) {
+                                    showBeatIQMessage(context, context.getString(R.string.home_download_queued))
+                                } else {
+                                    showBeatIQMessage(
+                                        context,
+                                        context.getString(R.string.home_download_unavailable),
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.home_download_preview))
+                    }
+                } else if (!track.isPlayablePreview) {
+                    Text(
+                        text = stringResource(R.string.home_download_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.action_close))

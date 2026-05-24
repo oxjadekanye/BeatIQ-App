@@ -1,10 +1,11 @@
 package com.beatiq.music.data.model
 
 import com.beatiq.music.core.browser.DirectAudioDownloadDetector
+import com.beatiq.music.core.recommendations.YoutubeMusicLinks
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-/** Online track, album, or playlist suggestion (Deezer Public API metadata). */
+/** Online track, album, or playlist suggestion (Deezer / YouTube Music browse metadata). */
 data class OnlineRecommendation(
     val id: String,
     val title: String,
@@ -12,27 +13,45 @@ data class OnlineRecommendation(
     val album: String,
     val artworkUrl: String,
     val genreHint: String,
-    /** Deezer web page for this track, album, or playlist. */
+    /** Provider web page (Deezer track page or YouTube Music search). */
     val trackViewUrl: String,
     val previewUrl: String?,
     val releaseDate: String?,
     val isAlbum: Boolean = false,
-    /** Human-readable provider label, e.g. "Deezer". */
-    val sourceLabel: String? = "Deezer",
-    /** True when a 30s Deezer preview stream URL is available. */
+    val provider: RecommendationProvider = RecommendationProvider.DEEZER,
+    /** Human-readable provider label, e.g. "Deezer" or "YouTube Music". */
+    val sourceLabel: String? = null,
+    /** True when a legal direct preview stream URL is available (e.g. Deezer 30s MP3). */
     val isPlayablePreview: Boolean = false,
 ) {
     val browserUrl: String
         get() =
             trackViewUrl.ifBlank {
-                "https://www.deezer.com/search?q=${
-                    URLEncoder.encode("$title $artist", StandardCharsets.UTF_8.name())
-                }"
+                when (provider) {
+                    RecommendationProvider.YOUTUBE_MUSIC ->
+                        YoutubeMusicLinks.searchUrlForTrack(title, artist)
+                    RecommendationProvider.SOUNDCLOUD ->
+                        "https://soundcloud.com/search?q=${
+                            URLEncoder.encode("$title $artist", StandardCharsets.UTF_8.name())
+                        }"
+                    RecommendationProvider.DEEZER ->
+                        "https://www.deezer.com/search?q=${
+                            URLEncoder.encode("$title $artist", StandardCharsets.UTF_8.name())
+                        }"
+                }
             }
 
     val hasPreviewAudio: Boolean
         get() =
-            isPlayablePreview &&
+            provider == RecommendationProvider.DEEZER &&
+                isPlayablePreview &&
                 !previewUrl.isNullOrBlank() &&
                 DirectAudioDownloadDetector.looksLikeDirectAudioFileUrl(previewUrl)
+
+    /** No legal in-app audio stream — open provider in BeatIQ WebView instead. */
+    val isYoutubeOnly: Boolean
+        get() = provider == RecommendationProvider.YOUTUBE_MUSIC && !hasPreviewAudio
+
+    val opensInInternalBrowser: Boolean
+        get() = isYoutubeOnly
 }

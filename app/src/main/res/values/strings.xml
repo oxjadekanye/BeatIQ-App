@@ -53,6 +53,11 @@
     <string name="home_play_preview">Play preview</string>
     <string name="home_stop_preview">Stop preview</string>
     <string name="home_deezer_source">Deezer</string>
+    <string name="home_youtube_source">YouTube Music</string>
+    <string name="home_opens_in_youtube">Opens in YouTube.</string>
+    <string name="home_open_in_beatiq_browser">Open in BeatIQ browser</string>
+    <string name="home_open_external_browser">Open in external browser</string>
+    <string name="home_badge_opens_youtube">Opens in YouTube</string>
     <string name="home_download_preview">Save preview clip</string>
     <string name="home_download_queued">Download started</string>
     <string name="home_download_unavailable">Could not start download</string>

@@ -11,6 +11,7 @@ object BeatIQInnerRoutes {
     const val DOWNLOADS = "downloads"
     const val PROFILE = "profile"
     const val ONLINE_BROWSER = "online_browser"
+    const val ONLINE_BROWSER_LINK_PATTERN = "online_browser_link/{startUrlKey}"
     const val IDENTIFY_MUSIC = "identify_music"
 
     const val ARTIST_TRACKS_PATTERN = "artist_tracks/{artistKey}"
@@ -39,6 +40,8 @@ object BeatIQInnerRoutes {
     fun playlistDetail(playlistId: String): String = "playlist_detail/$playlistId"
 
     fun playlistPick(playlistId: String): String = "playlist_pick/$playlistId"
+
+    fun onlineBrowserLink(encodedUrl: String): String = "online_browser_link/$encodedUrl"
 }
 
 fun isLibraryStackRoute(route: String?): Boolean =
@@ -62,4 +65,5 @@ fun isProfileStackRoute(route: String?): Boolean =
 fun isDiscoverStackRoute(route: String?): Boolean =
     route == BeatIQInnerRoutes.DISCOVER ||
         route == BeatIQInnerRoutes.ONLINE_BROWSER ||
+        route?.startsWith("online_browser_link/") == true ||
         route == BeatIQInnerRoutes.IDENTIFY_MUSIC

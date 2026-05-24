@@ -18,6 +18,7 @@ enum class HomeRecBadge {
     MATCHES_TASTE,
     PLAYABLE_PREVIEW,
     FREE_PREVIEW,
+    OPENS_IN_YOUTUBE,
 }
 
 object HomeRecommendationBadges {
@@ -29,6 +30,9 @@ object HomeRecommendationBadges {
         itemIndex: Int = 0,
     ): List<HomeRecBadge> {
         val out = linkedSetOf<HomeRecBadge>()
+        if (rec.isYoutubeOnly) {
+            out.add(HomeRecBadge.OPENS_IN_YOUTUBE)
+        }
         if (rec.isPlayablePreview) {
             out.add(HomeRecBadge.PLAYABLE_PREVIEW)
             if (rec.hasPreviewAudio) {

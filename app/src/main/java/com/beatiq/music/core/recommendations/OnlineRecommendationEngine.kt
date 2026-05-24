@@ -1,6 +1,7 @@
 package com.beatiq.music.core.recommendations
 
 import com.beatiq.music.data.model.OnlineRecommendation
+import com.beatiq.music.data.model.RecommendationProvider
 import com.beatiq.music.data.model.Song
 import com.beatiq.music.presentation.home.HomeGenreTab
 import java.net.URLEncoder
@@ -27,7 +28,7 @@ data class HomeAiFeed(
 /**
  * Taste-aware online music discovery via the [Deezer Public API](https://developers.deezer.com/api).
  *
- * TODO(Phase-3): Optional [RecommendationSource] adapters for YouTube Music / SoundCloud (official APIs only).
+ * Mixes Deezer previews with YouTube Music browse links (no stream extraction).
  */
 object OnlineRecommendationEngine {
 
@@ -54,18 +55,20 @@ object OnlineRecommendationEngine {
                 val albumsDef = async { fetchAlbums("${genreTab.searchTerm} album", 10, genreHint) }
                 val djDef = async { fetchTracks("dj mix ${genreTab.searchTerm}", 10, genreHint) }
                 val playlistsDef = async { fetchPlaylists("${genreTab.searchTerm} hits playlist", 10, genreHint) }
-                val featured = featuredDef.await().take(8)
-                val featuredIds = featured.map { it.id }.toSet()
+                val featuredDeezer = featuredDef.await().take(8)
+                val featuredIds = featuredDeezer.map { it.id }.toSet()
                 val gridPool =
                     dedupe(gridDef.await()).filter { it.id !in featuredIds }
                 HomeAiFeed(
                     genreTab = genreTab,
-                    featured = featured,
-                    gridSixteen = gridPool.take(16),
-                    trending = trendingDef.await().take(12),
-                    trendingAlbums = albumsDef.await().take(10),
-                    djMix = djDef.await().take(10),
-                    popularPlaylists = playlistsDef.await().take(10),
+                    featured = interleaveYoutubeMusic(featuredDeezer, youtubeSlots = 2),
+                    gridSixteen = interleaveYoutubeMusic(gridPool.take(16), youtubeSlots = 4),
+                    trending = interleaveYoutubeMusic(trendingDef.await().take(12), youtubeSlots = 3),
+                    trendingAlbums =
+                        interleaveYoutubeMusic(albumsDef.await().take(10), youtubeSlots = 2, everyNth = 4),
+                    djMix = interleaveYoutubeMusic(djDef.await().take(10), youtubeSlots = 2),
+                    popularPlaylists =
+                        interleaveYoutubeMusic(playlistsDef.await().take(10), youtubeSlots = 2, everyNth = 4),
                 )
             }
         }
@@ -94,6 +97,43 @@ object OnlineRecommendationEngine {
         val seen = linkedSetOf<String>()
         return items.filter { seen.add(it.id) }
     }
+
+    /**
+     * Adds YouTube Music browse cards (HTTPS search pages only) alongside Deezer rows.
+     */
+    private fun interleaveYoutubeMusic(
+        deezer: List<OnlineRecommendation>,
+        youtubeSlots: Int,
+        everyNth: Int = 3,
+    ): List<OnlineRecommendation> {
+        if (deezer.isEmpty() || youtubeSlots <= 0) return deezer
+        val youtube =
+            deezer
+                .filter { !it.isAlbum }
+                .distinctBy { "${it.title.lowercase()}|${it.artist.lowercase()}" }
+                .take(youtubeSlots)
+                .map { toYoutubeMusicBrowse(it) }
+        if (youtube.isEmpty()) return deezer
+        val merged = mutableListOf<OnlineRecommendation>()
+        var yIndex = 0
+        deezer.forEachIndexed { index, item ->
+            merged.add(item)
+            if ((index + 1) % everyNth == 0 && yIndex < youtube.size) {
+                merged.add(youtube[yIndex++])
+            }
+        }
+        return merged
+    }
+
+    private fun toYoutubeMusicBrowse(deezer: OnlineRecommendation): OnlineRecommendation =
+        deezer.copy(
+            id = "youtube_music_${deezer.id}",
+            provider = RecommendationProvider.YOUTUBE_MUSIC,
+            trackViewUrl = YoutubeMusicLinks.searchUrlForTrack(deezer.title, deezer.artist),
+            previewUrl = null,
+            isPlayablePreview = false,
+            sourceLabel = "YouTube Music",
+        )
 
     private fun fetchTracks(term: String, limit: Int, genreHint: String): List<OnlineRecommendation> =
         fetchDeezer("$BASE/search", term, limit) { arr ->
@@ -177,6 +217,7 @@ object OnlineRecommendationEngine {
             previewUrl = preview,
             releaseDate = releaseDate,
             isAlbum = false,
+            provider = RecommendationProvider.DEEZER,
             sourceLabel = "Deezer",
             isPlayablePreview = !preview.isNullOrBlank(),
         )
@@ -202,6 +243,7 @@ object OnlineRecommendationEngine {
             previewUrl = null,
             releaseDate = releaseDate,
             isAlbum = true,
+            provider = RecommendationProvider.DEEZER,
             sourceLabel = "Deezer",
             isPlayablePreview = false,
         )
@@ -232,6 +274,7 @@ object OnlineRecommendationEngine {
             previewUrl = null,
             releaseDate = null,
             isAlbum = false,
+            provider = RecommendationProvider.DEEZER,
             sourceLabel = "Deezer",
             isPlayablePreview = false,
         )
