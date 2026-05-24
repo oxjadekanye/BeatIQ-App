@@ -2,15 +2,19 @@ package com.beatiq.music.data.repository
 
 import com.beatiq.music.core.database.PlaylistDao
 import com.beatiq.music.core.database.PlaylistEntity
+import com.beatiq.music.core.database.SongDao
 import com.beatiq.music.core.database.toSong
 import com.beatiq.music.data.model.PlaylistSummary
 import com.beatiq.music.data.model.Song
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class RoomPlaylistRepository(
     private val dao: PlaylistDao,
+    private val songDao: SongDao,
 ) : PlaylistRepository {
 
     override fun observePlaylists(): Flow<List<PlaylistSummary>> =
@@ -52,11 +56,18 @@ class RoomPlaylistRepository(
         dao.deletePlaylist(id)
     }
 
-    override suspend fun addSongToPlaylist(playlistId: String, songId: String) {
-        dao.addSongToPlaylist(playlistId, songId, System.currentTimeMillis())
-    }
+    override suspend fun addSongToPlaylist(playlistId: String, songId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            if (dao.getPlaylist(playlistId) == null) return@withContext false
+            if (songDao.getById(songId) == null) return@withContext false
+            runCatching {
+                dao.addSongToPlaylist(playlistId, songId, System.currentTimeMillis())
+            }.isSuccess
+        }
 
     override suspend fun removeSongFromPlaylist(playlistId: String, songId: String) {
-        dao.removeSongFromPlaylist(playlistId, songId, System.currentTimeMillis())
+        withContext(Dispatchers.IO) {
+            dao.removeSongFromPlaylist(playlistId, songId, System.currentTimeMillis())
+        }
     }
 }

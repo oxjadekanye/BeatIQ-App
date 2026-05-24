@@ -20,4 +20,10 @@ interface UserDownloadDao {
 
     @Query("SELECT * FROM user_downloads WHERE downloadManagerId = :dmId LIMIT 1")
     suspend fun getByDownloadManagerId(dmId: Long): UserDownloadEntity?
+
+    @Query("SELECT * FROM user_downloads WHERE status IN ('RUNNING', 'PENDING') ORDER BY createdAt DESC")
+    suspend fun getIncomplete(): List<UserDownloadEntity>
+
+    @Query("SELECT * FROM user_downloads ORDER BY createdAt DESC")
+    suspend fun getAllOnce(): List<UserDownloadEntity>
 }

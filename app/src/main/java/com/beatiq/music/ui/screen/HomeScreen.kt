@@ -33,6 +33,7 @@ import com.beatiq.music.ui.components.LocalAlbumCard
 import com.beatiq.music.ui.components.LocalArtistChipCard
 import com.beatiq.music.ui.components.LocalSongHeroCard
 import com.beatiq.music.ui.components.LocalSongPosterCard
+import com.beatiq.music.ui.components.OnlineRecommendationCard
 import com.beatiq.music.ui.components.PremiumScreenBackground
 import com.beatiq.music.ui.components.SectionHeader
 import java.time.LocalTime
@@ -203,6 +204,43 @@ fun HomeScreen(onBack: () -> Unit) {
             }
 
             item {
+                SectionHeader(title = stringResource(R.string.home_section_ai_recommendations))
+            }
+            item {
+                when {
+                    state.recommendationsLoading -> {
+                        Text(
+                            text = stringResource(R.string.home_recommendations_loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                    state.onlineRecommendations.isEmpty() -> {
+                        Text(
+                            text = stringResource(R.string.home_recommendations_empty),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                    else -> {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        ) {
+                            items(state.onlineRecommendations, key = { it.id }) { rec ->
+                                OnlineRecommendationCard(
+                                    recommendation = rec,
+                                    onClick = { /* metadata preview; open Discover to download legally */ },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
                 SectionHeader(title = stringResource(R.string.home_section_albums))
             }
             item {
@@ -264,15 +302,6 @@ fun HomeScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-            }
-
-            item {
-                Text(
-                    text = "TODO: Integrate licensed streaming catalog when rights and APIs are available.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                )
             }
         }
     }

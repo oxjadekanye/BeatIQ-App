@@ -68,6 +68,54 @@ class RoomDownloadsRepository(
             Result.success(dmId)
         }
 
+    override suspend fun syncAllPendingDownloads() {
+        withContext(Dispatchers.IO) {
+            val rows = dao.getIncomplete()
+            rows.forEach { row ->
+                row.downloadManagerId?.let { syncDownloadManagerResult(it) }
+            }
+            // Catch rows stuck RUNNING when DownloadManager no longer tracks them but file exists.
+            dao.getAllOnce()
+                .filter { it.status == "RUNNING" || it.status == "PENDING" }
+                .forEach { row ->
+                    val file = expectedOutputFile(row.sourceUrl, row.displayTitle)
+                    if (file.exists() && file.length() > 512L) {
+                        dao.update(
+                            row.copy(
+                                status = "COMPLETED",
+                                completedAt = row.completedAt ?: System.currentTimeMillis(),
+                                localFilePath = Uri.fromFile(file).toString(),
+                            ),
+                        )
+                        MediaScannerConnection.scanFile(
+                            app,
+                            arrayOf(file.absolutePath),
+                            arrayOf<String?>(null),
+                            null,
+                        )
+                    }
+                }
+        }
+    }
+
+    suspend fun queryProgressFraction(downloadManagerId: Long): Float? =
+        withContext(Dispatchers.IO) {
+            val cursor =
+                downloadManager.query(
+                    DownloadManager.Query().setFilterById(downloadManagerId),
+                ) ?: return@withContext null
+            cursor.use { c ->
+                if (!c.moveToFirst()) return@withContext null
+                val totalIdx = c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                val doneIdx = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                if (totalIdx < 0 || doneIdx < 0) return@withContext null
+                val total = c.getLong(totalIdx)
+                val done = c.getLong(doneIdx)
+                if (total <= 0L) return@withContext null
+                (done.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+            }
+        }
+
     override suspend fun syncDownloadManagerResult(downloadManagerId: Long) {
         withContext(Dispatchers.IO) {
             val entity = dao.getByDownloadManagerId(downloadManagerId) ?: return@withContext

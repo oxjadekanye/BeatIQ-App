@@ -17,6 +17,7 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,8 @@ import com.beatiq.music.ui.components.BeatIQBackButton
 import com.beatiq.music.ui.components.DownloadStatusRow
 import com.beatiq.music.ui.components.EmptyHighlightCard
 import com.beatiq.music.ui.components.PremiumScreenBackground
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,13 +44,26 @@ fun DownloadsScreen(onBack: () -> Unit) {
     val vm: DownloadsViewModel = viewModel(factory = DownloadsViewModel.Factory)
     val downloads by vm.downloads.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            vm.syncNow()
+            delay(2_500)
+        }
+    }
+
+    val rows = remember(downloads) { vm.rowsWithProgress(downloads) }
     val active =
-        downloads.filter {
-            it.status == UserDownloadStatus.RUNNING || it.status == UserDownloadStatus.PENDING
+        rows.filter {
+            it.download.status == UserDownloadStatus.RUNNING ||
+                it.download.status == UserDownloadStatus.PENDING
         }
     val completed =
-        downloads.filter {
-            it.status == UserDownloadStatus.COMPLETED || it.status == UserDownloadStatus.FAILED
+        rows.filter {
+            it.download.status == UserDownloadStatus.COMPLETED
+        }
+    val failed =
+        rows.filter {
+            it.download.status == UserDownloadStatus.FAILED
         }
 
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -96,16 +112,16 @@ fun DownloadsScreen(onBack: () -> Unit) {
                             )
                         }
                     } else {
-                        items(active, key = { it.id }) { row ->
+                        items(active, key = { it.download.id }) { row ->
                             DownloadStatusRow(
-                                title = row.displayTitle,
-                                subtitle = row.status.subtitleLabel(),
-                                progress = if (row.status == UserDownloadStatus.RUNNING) null else null,
+                                title = row.download.displayTitle,
+                                subtitle = row.download.status.subtitleLabel(),
+                                progress = row.progressFraction,
                             )
                         }
                     }
                 } else {
-                    if (completed.isEmpty()) {
+                    if (completed.isEmpty() && failed.isEmpty()) {
                         item {
                             EmptyHighlightCard(
                                 title = stringResource(R.string.downloads_empty_completed_title),
@@ -114,21 +130,30 @@ fun DownloadsScreen(onBack: () -> Unit) {
                             )
                         }
                     } else {
-                        items(completed, key = { it.id }) { row ->
+                        items(completed, key = { it.download.id }) { row ->
                             DownloadStatusRow(
-                                title = row.displayTitle,
-                                subtitle = row.status.subtitleLabel(),
-                                progress = if (row.status == UserDownloadStatus.COMPLETED) 1f else null,
+                                title = row.download.displayTitle,
+                                subtitle = row.download.status.subtitleLabel(),
+                                progress = 1f,
+                            )
+                        }
+                        items(failed, key = { it.download.id }) { row ->
+                            DownloadStatusRow(
+                                title = row.download.displayTitle,
+                                subtitle = row.download.status.subtitleLabel(),
+                                progress = null,
                             )
                         }
                     }
-                    item {
-                        Text(
-                            text = stringResource(R.string.downloads_empty_completed_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                        )
+                    if (completed.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = stringResource(R.string.downloads_empty_completed_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                            )
+                        }
                     }
                 }
             }

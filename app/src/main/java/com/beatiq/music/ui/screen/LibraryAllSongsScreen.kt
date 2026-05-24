@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,9 +27,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.beatiq.music.R
+import com.beatiq.music.core.library.filterSongsByQuery
+import com.beatiq.music.data.model.Song
 import com.beatiq.music.features.library.RepositoryProvider
 import com.beatiq.music.features.library.SongListRow
+import com.beatiq.music.ui.components.AddToPlaylistDialog
 import com.beatiq.music.ui.components.BeatIQBackButton
+import com.beatiq.music.ui.components.DiscoverSearchBar
 import com.beatiq.music.ui.components.PremiumScreenBackground
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,10 +52,12 @@ fun LibraryAllSongsScreen(
 ) {
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(LibrarySongSort.TITLE) }
+    var query by remember { mutableStateOf("") }
+    var playlistPickSong by remember { mutableStateOf<Song?>(null) }
     val all by RepositoryProvider.musicRepository
         .observeAllSongs()
         .collectAsStateWithLifecycle(initialValue = emptyList())
-    val filtered =
+    val genreFiltered =
         remember(genreFilter, all) {
             if (genreFilter.isNullOrBlank()) {
                 all
@@ -55,17 +65,18 @@ fun LibraryAllSongsScreen(
                 all.filter { it.genre.equals(genreFilter, ignoreCase = true) }
             }
         }
+    val searched = remember(genreFiltered, query) { filterSongsByQuery(genreFiltered, query) }
     val sorted =
-        remember(sort, filtered) {
+        remember(sort, searched) {
             when (sort) {
-                LibrarySongSort.TITLE -> filtered.sortedBy { it.title.lowercase() }
-                LibrarySongSort.ARTIST -> filtered.sortedWith(
+                LibrarySongSort.TITLE -> searched.sortedBy { it.title.lowercase() }
+                LibrarySongSort.ARTIST -> searched.sortedWith(
                     compareBy({ it.artist.lowercase() }, { it.title.lowercase() }),
                 )
-                LibrarySongSort.ALBUM -> filtered.sortedWith(
+                LibrarySongSort.ALBUM -> searched.sortedWith(
                     compareBy({ it.album.lowercase() }, { it.title.lowercase() }),
                 )
-                LibrarySongSort.DATE_ADDED -> filtered.sortedByDescending { it.dateAdded }
+                LibrarySongSort.DATE_ADDED -> searched.sortedByDescending { it.dateAdded }
             }
         }
     val playback by RepositoryProvider.playerRepository
@@ -78,6 +89,13 @@ fun LibraryAllSongsScreen(
         } else {
             stringResource(R.string.library_genre_songs_title, genreFilter)
         }
+
+    playlistPickSong?.let { song ->
+        AddToPlaylistDialog(
+            song = song,
+            onDismiss = { playlistPickSong = null },
+        )
+    }
 
     PremiumScreenBackground {
         LazyColumn(
@@ -100,6 +118,13 @@ fun LibraryAllSongsScreen(
                         modifier = Modifier.padding(start = 4.dp),
                     )
                 }
+            }
+            item {
+                DiscoverSearchBar(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = stringResource(R.string.library_search_all_placeholder),
+                )
             }
             item {
                 Text(
@@ -144,21 +169,43 @@ fun LibraryAllSongsScreen(
                     }
                 }
             }
+            if (sorted.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.library_search_no_results),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    )
+                }
+            }
             items(sorted, key = { it.id }) { song ->
-                SongListRow(
-                    song = song,
-                    isActive = song.id == playback.currentSong?.id,
-                    isFavorite = song.isFavorite,
-                    onFavoriteClick = {
-                        scope.launch { RepositoryProvider.musicRepository.toggleFavorite(song.id) }
-                    },
-                    onClick = {
-                        scope.launch {
-                            RepositoryProvider.playerRepository.playSongWithQueue(song, sorted)
-                        }
-                    },
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SongListRow(
+                        song = song,
+                        isActive = song.id == playback.currentSong?.id,
+                        isFavorite = song.isFavorite,
+                        onFavoriteClick = {
+                            scope.launch { RepositoryProvider.musicRepository.toggleFavorite(song.id) }
+                        },
+                        onClick = {
+                            scope.launch {
+                                RepositoryProvider.playerRepository.playSongWithQueue(song, sorted)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = { playlistPickSong = song }) {
+                        Icon(
+                            Icons.Outlined.PlaylistAdd,
+                            contentDescription = stringResource(R.string.song_menu_add_playlist),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
             }
         }
     }

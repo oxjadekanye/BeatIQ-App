@@ -4,10 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import com.beatiq.music.R
@@ -45,12 +41,23 @@ fun SongLongPressMenuHost(
     var pickPlaylist by remember { mutableStateOf(false) }
     var showMoveHint by remember { mutableStateOf(false) }
     var showFolderHint by remember { mutableStateOf(false) }
-    val playlists by RepositoryProvider.playlistRepository
-        .observePlaylists()
-        .collectAsStateWithLifecycle(initialValue = emptyList())
+
+    if (song == null) return
+
+    if (pickPlaylist) {
+        AddToPlaylistDialog(
+            song = song,
+            onDismiss = { pickPlaylist = false },
+            onAdded = {
+                pickPlaylist = false
+                onDismiss()
+            },
+        )
+        return
+    }
 
     if (showMoveHint) {
-        AlertDialog(
+        androidx.compose.material3.AlertDialog(
             onDismissRequest = { showMoveHint = false },
             title = { Text(stringResource(R.string.song_menu_move)) },
             text = { Text(stringResource(R.string.song_menu_move_hint)) },
@@ -62,7 +69,7 @@ fun SongLongPressMenuHost(
         )
     }
     if (showFolderHint) {
-        AlertDialog(
+        androidx.compose.material3.AlertDialog(
             onDismissRequest = { showFolderHint = false },
             title = { Text(stringResource(R.string.song_menu_create_folder)) },
             text = { Text(stringResource(R.string.song_menu_create_folder_hint)) },
@@ -89,44 +96,6 @@ fun SongLongPressMenuHost(
                 }
             },
         )
-    }
-
-    if (song == null) return
-
-    if (pickPlaylist) {
-        AlertDialog(
-            onDismissRequest = { pickPlaylist = false },
-            title = { Text(stringResource(R.string.song_menu_pick_playlist_title)) },
-            text = {
-                if (playlists.isEmpty()) {
-                    Text(stringResource(R.string.song_menu_no_playlists))
-                } else {
-                    LazyColumn {
-                        items(playlists, key = { it.id }) { pl ->
-                            TextButton(
-                                onClick = {
-                                    scope.launch {
-                                        RepositoryProvider.playlistRepository.addSongToPlaylist(pl.id, song.id)
-                                        pickPlaylist = false
-                                        onDismiss()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(pl.name, modifier = Modifier.fillMaxWidth())
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { pickPlaylist = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        )
-        return
     }
 
     Dialog(onDismissRequest = onDismiss) {

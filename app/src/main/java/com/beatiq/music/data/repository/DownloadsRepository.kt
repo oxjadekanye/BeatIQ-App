@@ -16,4 +16,7 @@ interface DownloadsRepository {
      * Called when [android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE] fires for [downloadManagerId].
      */
     suspend fun syncDownloadManagerResult(downloadManagerId: Long)
+
+    /** Reconcile every in-progress row with DownloadManager (call on app start and Downloads tab). */
+    suspend fun syncAllPendingDownloads()
 }

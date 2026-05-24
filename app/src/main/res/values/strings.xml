@@ -28,6 +28,9 @@
     <string name="home_section_recently_played">Recently played</string>
     <string name="home_section_most_played">Most played</string>
     <string name="home_section_favourites">Favourites</string>
+    <string name="home_section_ai_recommendations">Recommended for you</string>
+    <string name="home_recommendations_loading">Finding tracks similar to your taste…</string>
+    <string name="home_recommendations_empty">Listen to or favourite more tracks to get personalised online suggestions.</string>
     <string name="home_section_albums">Albums</string>
     <string name="home_section_artists">Artists</string>
     <string name="home_empty_library_title">No local music yet</string>
@@ -145,6 +148,10 @@
     <string name="library_sort_album">Album</string>
     <string name="library_sort_date_added">Date added</string>
     <string name="library_favourites_empty">No favourites yet. Tap the heart on any track to add it here.</string>
+    <string name="library_favourites_title">Favourites</string>
+    <string name="library_search_favourites_placeholder">Search favourites by title, artist, or album</string>
+    <string name="library_search_all_placeholder">Search by title, artist, or album</string>
+    <string name="library_search_no_results">No tracks match your search.</string>
 
     <string name="library_playlists_header">Your playlists</string>
     <string name="library_playlists_new">New playlist</string>
@@ -158,6 +165,11 @@
     <string name="playlist_pick_title">Add to playlist</string>
     <string name="playlist_pick_body">Pick songs from your library. Only direct HTTPS audio file links can be downloaded from the browser or paste tool.</string>
     <string name="playlist_add_one_cd">Add to playlist</string>
+    <string name="playlist_added_one">Added “%1$s” to playlist</string>
+    <string name="playlist_added_to">Added to “%1$s”</string>
+    <string name="playlist_add_failed">Could not add track to playlist</string>
+    <string name="playlist_pick_empty_title">Nothing to add</string>
+    <string name="playlist_pick_all_added">Every library track is already in this playlist.</string>
 
     <string name="library_folders_smart_title">Smart library layout</string>
     <string name="library_folders_smart_body">BeatIQ groups your music by album and artist using embedded tags. Use genres below as quick folders into filtered track lists.</string>

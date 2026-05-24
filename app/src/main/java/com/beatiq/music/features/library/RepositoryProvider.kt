@@ -14,6 +14,10 @@ import com.beatiq.music.data.repository.RoomPlaylistRepository
 import com.beatiq.music.data.repository.RoomScannerRepository
 import com.beatiq.music.data.repository.ScannerRepository
 import com.beatiq.music.features.scanner.MusicScanner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Repositories scoped to the signed-in user. [ensureForUser] switches Room DB files per account.
@@ -65,7 +69,7 @@ object RepositoryProvider {
             val playlistDao = db.playlistDao()
             val musicRepo = RoomMusicRepository(dao)
             val downloadsRepo = RoomDownloadsRepository(app, downloadDao)
-            val playlistRepo = RoomPlaylistRepository(playlistDao)
+            val playlistRepo = RoomPlaylistRepository(playlistDao, dao)
             val scannerRepo = RoomScannerRepository(app.applicationContext, dao, MusicScanner())
             val playbackController = PlaybackController.get(app, musicRepo)
             val playerRepo = Media3PlayerRepository(playbackController, musicRepo)
@@ -76,6 +80,9 @@ object RepositoryProvider {
             playerRepositoryImpl = playerRepo
             activeUserId = userId
             initialized = true
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                downloadsRepo.syncAllPendingDownloads()
+            }
         }
     }
 

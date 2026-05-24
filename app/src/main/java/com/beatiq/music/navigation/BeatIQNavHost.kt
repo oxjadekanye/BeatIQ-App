@@ -56,6 +56,7 @@ import com.beatiq.music.ui.screen.ArtistTracksScreen
 import com.beatiq.music.ui.screen.DiscoverScreen
 import com.beatiq.music.ui.screen.DownloadsScreen
 import com.beatiq.music.ui.screen.HomeScreen
+import com.beatiq.music.ui.screen.LibraryFavouritesScreen
 import com.beatiq.music.ui.screen.LibraryAllSongsScreen
 import com.beatiq.music.ui.screen.LibraryScreen
 import com.beatiq.music.ui.screen.LegalScreen
@@ -324,6 +325,11 @@ private fun MainShell(
                     AlbumTracksScreen(
                         albumTitle = album,
                         albumArtist = artist,
+                        onBack = { innerNavController.popBackStack() },
+                    )
+                }
+                composable(BeatIQInnerRoutes.LIBRARY_FAVOURITES) {
+                    LibraryFavouritesScreen(
                         onBack = { innerNavController.popBackStack() },
                     )
                 }

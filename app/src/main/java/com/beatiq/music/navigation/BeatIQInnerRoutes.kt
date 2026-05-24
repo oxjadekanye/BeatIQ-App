@@ -16,6 +16,7 @@ object BeatIQInnerRoutes {
     const val ARTIST_TRACKS_PATTERN = "artist_tracks/{artistKey}"
     const val ALBUM_TRACKS_PATTERN = "album_tracks/{albumKey}"
     const val LIBRARY_ALL_SONGS = "library_all_songs"
+    const val LIBRARY_FAVOURITES = "library_favourites"
     const val LIBRARY_GENRE_PATTERN = "library_genre_songs/{genreKey}"
     const val PLAYLIST_DETAIL_PATTERN = "playlist_detail/{playlistId}"
     const val PLAYLIST_PICK_PATTERN = "playlist_pick/{playlistId}"
@@ -45,6 +46,7 @@ fun isLibraryStackRoute(route: String?): Boolean =
         route?.startsWith("artist_tracks/") == true ||
         route?.startsWith("album_tracks/") == true ||
         route == BeatIQInnerRoutes.LIBRARY_ALL_SONGS ||
+        route == BeatIQInnerRoutes.LIBRARY_FAVOURITES ||
         route?.startsWith("library_genre_songs/") == true ||
         route?.startsWith("playlist_detail/") == true ||
         route?.startsWith("playlist_pick/") == true

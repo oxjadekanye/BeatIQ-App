@@ -15,7 +15,8 @@ interface PlaylistRepository {
 
     suspend fun deletePlaylist(id: String)
 
-    suspend fun addSongToPlaylist(playlistId: String, songId: String)
+    /** @return true when the song link was saved to the playlist. */
+    suspend fun addSongToPlaylist(playlistId: String, songId: String): Boolean
 
     suspend fun removeSongFromPlaylist(playlistId: String, songId: String)
 }

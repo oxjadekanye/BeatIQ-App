@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.beatiq.music.core.library.filterSongsByQuery
 import com.beatiq.music.R
 import com.beatiq.music.core.permissions.AudioReadPermission
 import com.beatiq.music.data.model.Song
@@ -55,6 +56,7 @@ import com.beatiq.music.ui.components.EmptyHighlightCard
 import com.beatiq.music.ui.components.LocalAlbumCard
 import com.beatiq.music.ui.components.LocalArtistChipCard
 import com.beatiq.music.ui.components.LocalSongPosterCard
+import com.beatiq.music.ui.components.DiscoverSearchBar
 import com.beatiq.music.ui.components.PremiumScreenBackground
 import com.beatiq.music.ui.components.SectionHeader
 import kotlinx.coroutines.launch
@@ -63,6 +65,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BeatIQLibraryScreen(
     onBack: () -> Unit,
+    onSeeAllFavourites: () -> Unit,
     onSeeAllSongs: () -> Unit,
     onNavigateArtist: (String) -> Unit,
     onNavigateAlbum: (album: String, artist: String) -> Unit,
@@ -183,6 +186,7 @@ fun BeatIQLibraryScreen(
                             songs = songs,
                             favouriteSongs = favouriteSongs,
                             currentPlayingId = playback.currentSong?.id,
+                            onSeeAllFavourites = onSeeAllFavourites,
                             onSeeAllSongs = onSeeAllSongs,
                             onSongClick = { song ->
                                 scope.launch {
@@ -242,10 +246,17 @@ private fun SongsTab(
     songs: List<Song>,
     favouriteSongs: List<Song>,
     currentPlayingId: String?,
+    onSeeAllFavourites: () -> Unit,
     onSeeAllSongs: () -> Unit,
     onSongClick: (Song) -> Unit,
     onToggleFavorite: (String) -> Unit,
 ) {
+    var favQuery by remember { mutableStateOf("") }
+    val visibleFavourites =
+        remember(favouriteSongs, favQuery) {
+            filterSongsByQuery(favouriteSongs, favQuery)
+        }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 96.dp),
@@ -255,7 +266,15 @@ private fun SongsTab(
             SectionHeader(
                 title = stringResource(R.string.library_section_favourites),
                 actionLabel = stringResource(R.string.action_see_all),
-                onActionClick = onSeeAllSongs,
+                onActionClick = onSeeAllFavourites,
+            )
+        }
+        item {
+            DiscoverSearchBar(
+                value = favQuery,
+                onValueChange = { favQuery = it },
+                placeholder = stringResource(R.string.library_search_favourites_placeholder),
+                modifier = Modifier.padding(horizontal = 0.dp),
             )
         }
         item {
@@ -266,12 +285,19 @@ private fun SongsTab(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
+            } else if (visibleFavourites.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.library_search_no_results),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
             } else {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(vertical = 4.dp),
                 ) {
-                    items(favouriteSongs, key = { it.id }) { song ->
+                    items(visibleFavourites, key = { it.id }) { song ->
                         LocalSongPosterCard(
                             song = song,
                             onClick = { onSongClick(song) },
@@ -281,12 +307,10 @@ private fun SongsTab(
             }
         }
         item {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.library_section_tracks),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(vertical = 4.dp),
+            SectionHeader(
+                title = stringResource(R.string.library_section_tracks),
+                actionLabel = stringResource(R.string.action_see_all),
+                onActionClick = onSeeAllSongs,
             )
         }
         items(songs, key = { it.id }) { song ->

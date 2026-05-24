@@ -14,6 +14,7 @@ fun LibraryScreen(
 ) {
     BeatIQLibraryScreen(
         onBack = onBack,
+        onSeeAllFavourites = { innerNavController.navigate(BeatIQInnerRoutes.LIBRARY_FAVOURITES) },
         onSeeAllSongs = { innerNavController.navigate(BeatIQInnerRoutes.LIBRARY_ALL_SONGS) },
         onNavigateArtist = { artist ->
             innerNavController.navigate(BeatIQInnerRoutes.artistTracks(NavEncoding.encode(artist)))
