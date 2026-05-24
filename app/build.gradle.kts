@@ -49,8 +49,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // Increment versionCode for every Play upload (must strictly increase).
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         val productionApi = "https://beatiq.onrender.com/api/v1/"
         buildConfigField("String", "API_BASE_URL", "\"${productionApi.escapeForBuildConfig()}\"")
