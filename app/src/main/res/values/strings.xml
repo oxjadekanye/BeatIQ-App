@@ -24,6 +24,20 @@
     <string name="home_greet_night">Welcome back</string>
     <string name="home_headline">Your sound, tuned for you</string>
     <string name="home_sub">From your device library — recently added, most played, and favourites.</string>
+    <string name="home_sub_ai">Fresh AI picks from the web — tailored to your taste and genre.</string>
+    <string name="home_refresh_ai">Refresh recommendations</string>
+    <string name="home_section_ai_featured">Featured for you</string>
+    <string name="home_section_ai_grid">More picks</string>
+    <string name="home_section_trending">Trending now</string>
+    <string name="home_section_trending_albums">Trending albums</string>
+    <string name="home_section_dj_mix">DJ mixes</string>
+    <string name="home_section_popular_playlists">Popular playlists</string>
+    <string name="home_swipe_more">Swipe for more · %1$d of %2$d</string>
+    <string name="home_open_in_browser">Open in browser</string>
+    <string name="home_download_preview">Save preview clip</string>
+    <string name="home_download_queued">Download started</string>
+    <string name="home_download_unavailable">Could not start download</string>
+    <string name="home_download_hint">Open in browser for full tracks and legal download options where available.</string>
     <string name="home_section_recently_added">Recently added</string>
     <string name="home_section_recently_played">Recently played</string>
     <string name="home_section_most_played">Most played</string>
@@ -135,7 +149,12 @@
     <string name="playback_notification_channel_description">Media controls and now playing for BeatIQ</string>
 
     <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
     <string name="action_open">Open</string>
+    <string name="downloads_clear_from_list">Remove from list</string>
+    <string name="downloads_cleared_from_list">Removed from downloads list. File stays in your library.</string>
+    <string name="library_folders_albums">Album folders</string>
+    <string name="library_folders_downloads">BeatIQ downloads</string>
 
     <string name="artist_tracks_subtitle">%d tracks</string>
     <string name="album_tracks_subtitle">%d tracks</string>
@@ -213,6 +232,7 @@
     <string name="settings_show_lyrics">Show lyrics while playing</string>
     <string name="player_lyrics_toggle">Lyrics</string>
     <string name="player_lyrics_loading">Looking up lyrics…</string>
+    <string name="player_lyrics_unavailable">Lyrics not found online for this track yet.</string>
 
     <string name="identify_title">Identify music</string>
     <string name="identify_body">Hold your phone near the speaker. We record a short sample, send it to AudD for recognition, and show matches. Add your AudD token in local.properties as audd.api.token for this feature.</string>

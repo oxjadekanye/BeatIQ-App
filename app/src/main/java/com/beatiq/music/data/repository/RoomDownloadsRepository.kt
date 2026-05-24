@@ -68,6 +68,12 @@ class RoomDownloadsRepository(
             Result.success(dmId)
         }
 
+    override suspend fun removeFromDownloadHistory(id: String) {
+        withContext(Dispatchers.IO) {
+            dao.deleteById(id)
+        }
+    }
+
     override suspend fun syncAllPendingDownloads() {
         withContext(Dispatchers.IO) {
             val rows = dao.getIncomplete()

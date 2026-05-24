@@ -43,6 +43,12 @@ class DownloadsViewModel(
         }
     }
 
+    fun removeFromList(id: String) {
+        viewModelScope.launch {
+            downloadsRepository.removeFromDownloadHistory(id)
+        }
+    }
+
     init {
         syncNow()
     }

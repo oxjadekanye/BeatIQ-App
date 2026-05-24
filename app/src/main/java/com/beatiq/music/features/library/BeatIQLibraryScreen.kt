@@ -228,7 +228,10 @@ fun BeatIQLibraryScreen(
                     LibraryTab.FOLDERS ->
                         FoldersTab(
                             genres = genres,
+                            albumSections = albumSections,
                             onGenreClick = onNavigateGenre,
+                            onAlbumClick = onNavigateAlbum,
+                            onOpenDownloads = onOpenMainDownloads,
                         )
 
                     LibraryTab.DOWNLOADS ->
@@ -495,7 +498,10 @@ private fun PlaylistsTab(
 @Composable
 private fun FoldersTab(
     genres: List<String>,
+    albumSections: List<AlbumSection>,
     onGenreClick: (String) -> Unit,
+    onAlbumClick: (album: String, artist: String) -> Unit,
+    onOpenDownloads: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -507,6 +513,47 @@ private fun FoldersTab(
                 title = stringResource(R.string.library_folders_smart_title),
                 body = stringResource(R.string.library_folders_smart_body),
             )
+        }
+        item {
+            TextButton(onClick = onOpenDownloads, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.library_folders_downloads),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        item {
+            Text(
+                text = stringResource(R.string.library_folders_albums),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        if (albumSections.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.library_folders_no_genres),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            items(albumSections, key = { "${it.album}|||${it.artist}" }) { section ->
+                TextButton(
+                    onClick = { onAlbumClick(section.album, section.artist) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "${section.album} · ${section.artist} (${section.songs.size})",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         }
         item {
             Text(

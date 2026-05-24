@@ -26,4 +26,7 @@ interface UserDownloadDao {
 
     @Query("SELECT * FROM user_downloads ORDER BY createdAt DESC")
     suspend fun getAllOnce(): List<UserDownloadEntity>
+
+    @Query("DELETE FROM user_downloads WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

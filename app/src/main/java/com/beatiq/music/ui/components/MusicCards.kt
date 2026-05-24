@@ -24,9 +24,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.beatiq.music.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -125,6 +128,7 @@ fun DownloadStatusRow(
     subtitle: String,
     progress: Float?,
     modifier: Modifier = Modifier,
+    onClearFromList: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier
@@ -160,6 +164,11 @@ fun DownloadStatusRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                if (onClearFromList != null) {
+                    TextButton(onClick = onClearFromList) {
+                        Text(stringResource(R.string.downloads_clear_from_list))
+                    }
+                }
             }
             Spacer(Modifier.height(12.dp))
             if (progress != null) {
@@ -192,10 +201,11 @@ fun OnlineRecommendationCard(
     recommendation: OnlineRecommendation,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.width(148.dp),
+        modifier = if (compact) modifier else modifier.width(148.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
@@ -209,7 +219,7 @@ fun OnlineRecommendationCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(148.dp)
+                        .height(if (compact) 88.dp else 148.dp)
                         .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                 contentScale = ContentScale.Crop,
             )

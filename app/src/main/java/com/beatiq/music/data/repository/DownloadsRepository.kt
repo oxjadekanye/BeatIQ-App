@@ -19,4 +19,7 @@ interface DownloadsRepository {
 
     /** Reconcile every in-progress row with DownloadManager (call on app start and Downloads tab). */
     suspend fun syncAllPendingDownloads()
+
+    /** Removes history row only; keeps any downloaded file in library storage. */
+    suspend fun removeFromDownloadHistory(id: String)
 }

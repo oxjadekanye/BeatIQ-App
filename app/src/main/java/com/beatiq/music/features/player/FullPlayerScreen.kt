@@ -44,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -70,6 +71,7 @@ import com.beatiq.music.R
 import com.beatiq.music.core.lyrics.LrcLine
 import com.beatiq.music.core.lyrics.LrcLyricsParser
 import com.beatiq.music.core.lyrics.LrclibLyricsClient
+import com.beatiq.music.core.recommendations.OnlineRecommendationEngine
 import com.beatiq.music.core.prefs.BeatIQPreferences
 import com.beatiq.music.core.utils.formatDurationMs
 import com.beatiq.music.features.library.RepositoryProvider
@@ -88,6 +90,8 @@ fun FullPlayerScreen(
     var showLyrics by remember { mutableStateOf(prefs.showLyricsWhilePlaying) }
     var lyricsPlain by remember { mutableStateOf<String?>(null) }
     var syncedLrcLines by remember { mutableStateOf<List<LrcLine>>(emptyList()) }
+    var lyricsLoading by remember { mutableStateOf(false) }
+    var lyricsUnavailable by remember { mutableStateOf(false) }
     val state by RepositoryProvider.playerRepository.playbackUiState.collectAsStateWithLifecycle()
 
     val song = state.currentSong
@@ -95,6 +99,8 @@ fun FullPlayerScreen(
         onDismiss()
         return
     }
+
+    var artworkModel by remember(song.id) { mutableStateOf<Any?>(song.artworkUri ?: song.filePath) }
 
     val accent = rememberAccentFromSong(song.id)
     val infinite = rememberInfiniteTransition(label = "vinyl")
@@ -108,12 +114,9 @@ fun FullPlayerScreen(
         label = "vinylRotation",
     )
 
-    LaunchedEffect(song.id, song.title, song.artist, song.album, showLyrics) {
-        if (!showLyrics) {
-            lyricsPlain = null
-            syncedLrcLines = emptyList()
-            return@LaunchedEffect
-        }
+    LaunchedEffect(song.id, song.title, song.artist, song.album) {
+        lyricsLoading = true
+        lyricsUnavailable = false
         lyricsPlain = null
         syncedLrcLines = emptyList()
         val fetched =
@@ -136,6 +139,24 @@ fun FullPlayerScreen(
                 }
             }
             !plain.isNullOrBlank() -> lyricsPlain = plain
+            else -> lyricsUnavailable = true
+        }
+        lyricsLoading = false
+    }
+
+    LaunchedEffect(song.id, song.title, song.artist, song.album) {
+        if (!song.artworkUri.isNullOrBlank()) {
+            artworkModel = song.artworkUri
+            return@LaunchedEffect
+        }
+        val online =
+            OnlineRecommendationEngine.lookupArtwork(
+                title = song.title,
+                artist = song.artist,
+                album = song.album,
+            )
+        if (!online.isNullOrBlank()) {
+            artworkModel = online
         }
     }
 
@@ -190,7 +211,7 @@ fun FullPlayerScreen(
             }
             Spacer(Modifier.height(12.dp))
             AsyncImage(
-                model = song.artworkUri ?: song.filePath,
+                model = artworkModel,
                 contentDescription = song.title,
                 modifier = Modifier
                     .size(280.dp)
@@ -245,17 +266,30 @@ fun FullPlayerScreen(
                     color = Color.White.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.labelLarge,
                 )
-                IconButton(
-                    onClick = {
-                        showLyrics = !showLyrics
-                        prefs.showLyricsWhilePlaying = showLyrics
-                    },
-                ) {
-                    Icon(
-                        Icons.Outlined.Subtitles,
-                        contentDescription = stringResource(R.string.player_lyrics_toggle),
-                        tint = if (showLyrics) Color.White else Color.White.copy(alpha = 0.45f),
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (showLyrics) {
+                        TextButton(onClick = {
+                            showLyrics = false
+                            prefs.showLyricsWhilePlaying = false
+                        }) {
+                            Text(
+                                text = stringResource(R.string.action_close),
+                                color = Color.White.copy(alpha = 0.85f),
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = {
+                            showLyrics = !showLyrics
+                            prefs.showLyricsWhilePlaying = showLyrics
+                        },
+                    ) {
+                        Icon(
+                            Icons.Outlined.Subtitles,
+                            contentDescription = stringResource(R.string.player_lyrics_toggle),
+                            tint = if (showLyrics) Color.White else Color.White.copy(alpha = 0.45f),
+                        )
+                    }
                 }
             }
             if (showLyrics) {
@@ -297,6 +331,28 @@ fun FullPlayerScreen(
                     lyricsPlain != null -> {
                         Text(
                             text = lyricsPlain.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                        )
+                    }
+                    lyricsLoading -> {
+                        Text(
+                            text = stringResource(R.string.player_lyrics_loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                        )
+                    }
+                    lyricsUnavailable -> {
+                        Text(
+                            text = stringResource(R.string.player_lyrics_unavailable),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.9f),
                             modifier =

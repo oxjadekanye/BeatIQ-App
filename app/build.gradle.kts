@@ -49,8 +49,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // Increment versionCode for every Play upload (must strictly increase).
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         val productionApi = "https://beatiq.onrender.com/api/v1/"
         buildConfigField("String", "API_BASE_URL", "\"${productionApi.escapeForBuildConfig()}\"")
@@ -141,6 +141,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)

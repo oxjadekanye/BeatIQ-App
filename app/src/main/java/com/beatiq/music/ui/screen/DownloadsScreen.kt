@@ -35,12 +35,15 @@ import com.beatiq.music.ui.components.BeatIQBackButton
 import com.beatiq.music.ui.components.DownloadStatusRow
 import com.beatiq.music.ui.components.EmptyHighlightCard
 import com.beatiq.music.ui.components.PremiumScreenBackground
+import com.beatiq.music.ui.feedback.showBeatIQMessage
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     val vm: DownloadsViewModel = viewModel(factory = DownloadsViewModel.Factory)
     val downloads by vm.downloads.collectAsStateWithLifecycle()
 
@@ -135,6 +138,13 @@ fun DownloadsScreen(onBack: () -> Unit) {
                                 title = row.download.displayTitle,
                                 subtitle = row.download.status.subtitleLabel(),
                                 progress = 1f,
+                                onClearFromList = {
+                                    vm.removeFromList(row.download.id)
+                                    showBeatIQMessage(
+                                        context,
+                                        context.getString(R.string.downloads_cleared_from_list),
+                                    )
+                                },
                             )
                         }
                         items(failed, key = { it.download.id }) { row ->
@@ -142,6 +152,13 @@ fun DownloadsScreen(onBack: () -> Unit) {
                                 title = row.download.displayTitle,
                                 subtitle = row.download.status.subtitleLabel(),
                                 progress = null,
+                                onClearFromList = {
+                                    vm.removeFromList(row.download.id)
+                                    showBeatIQMessage(
+                                        context,
+                                        context.getString(R.string.downloads_cleared_from_list),
+                                    )
+                                },
                             )
                         }
                     }
