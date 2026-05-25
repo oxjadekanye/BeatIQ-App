@@ -14,6 +14,7 @@ internal fun SongEntity.toSong(): Song = Song(
     dateAdded = dateAdded,
     playCount = playCount,
     isFavorite = isFavorite,
+    recentlyPlayedAt = recentlyPlayedAt,
 )
 
 internal fun Song.effectiveMediaStoreId(): Long =

@@ -42,6 +42,7 @@ import com.beatiq.music.core.browser.DirectAudioDownloadDetector
 import com.beatiq.music.data.model.OnlineRecommendation
 import com.beatiq.music.data.model.RecommendationProvider
 import com.beatiq.music.features.library.RepositoryProvider
+import com.beatiq.music.features.recommendations.intelligence.RecommendationSignalCollector
 import com.beatiq.music.ui.feedback.showBeatIQMessage
 import kotlinx.coroutines.launch
 
@@ -54,6 +55,7 @@ fun OnlineTrackDetailSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var previewPlaying by remember { mutableStateOf(false) }
+    var previewStarted by remember { mutableStateOf(false) }
 
     val previewPlayer =
         remember {
@@ -64,6 +66,9 @@ fun OnlineTrackDetailSheet(
 
     DisposableEffect(previewPlayer) {
         onDispose {
+            if (previewStarted) {
+                RecommendationSignalCollector.recordPreviewComplete(context)
+            }
             previewPlayer.release()
         }
     }
@@ -185,10 +190,12 @@ fun OnlineTrackDetailSheet(
                                 previewPlayer.pause()
                                 previewPlaying = false
                             } else {
+                                RecommendationSignalCollector.recordPlay(context, track.artist)
                                 previewPlayer.setMediaItem(MediaItem.fromUri(preview))
                                 previewPlayer.prepare()
                                 previewPlayer.play()
                                 previewPlaying = true
+                                previewStarted = true
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -214,6 +221,7 @@ fun OnlineTrackDetailSheet(
                                         "${track.artist} — ${track.title}",
                                     )
                                 if (result.isSuccess) {
+                                    RecommendationSignalCollector.recordSave(context)
                                     showBeatIQMessage(context, context.getString(R.string.home_download_queued))
                                 } else {
                                     showBeatIQMessage(

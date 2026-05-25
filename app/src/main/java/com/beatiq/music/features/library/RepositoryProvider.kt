@@ -30,6 +30,12 @@ object RepositoryProvider {
     @Volatile
     private var activeUserId: String? = null
 
+    @Volatile
+    private var application: Application? = null
+
+    fun requireApplication(): Application =
+        application ?: error("BeatIQ repositories not initialized")
+
     private var musicRepositoryImpl: MusicRepository? = null
     private var scannerRepositoryImpl: ScannerRepository? = null
     private var playerRepositoryImpl: PlayerRepository? = null
@@ -79,6 +85,7 @@ object RepositoryProvider {
             scannerRepositoryImpl = scannerRepo
             playerRepositoryImpl = playerRepo
             activeUserId = userId
+            application = app
             initialized = true
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 downloadsRepo.syncAllPendingDownloads()
@@ -102,6 +109,7 @@ object RepositoryProvider {
         playlistRepositoryImpl = null
         BeatIQDatabase.closeCurrent()
         activeUserId = null
+        application = null
         initialized = false
     }
 }

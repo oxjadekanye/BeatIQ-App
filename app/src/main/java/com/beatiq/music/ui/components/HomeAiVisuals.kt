@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.beatiq.music.core.ui.premium.rememberAnimationsEnabled
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -140,44 +141,51 @@ fun HomeRecBadgeChip(badge: HomeRecBadge) {
 @Composable
 fun MiniEqualizerBars(
     modifier: Modifier = Modifier,
+    animate: Boolean = rememberAnimationsEnabled(),
 ) {
-    val transition = rememberInfiniteTransition(label = "eq")
-    val h1 by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(380, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "eq1",
-    )
-    val h2 by transition.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 0.3f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(420, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "eq2",
-    )
-    val h3 by transition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.9f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(360, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "eq3",
-    )
+    val barHeights: List<Float> =
+        if (animate) {
+            val transition = rememberInfiniteTransition(label = "eq")
+            val h1 by transition.animateFloat(
+                initialValue = 0.35f,
+                targetValue = 1f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(380, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "eq1",
+            )
+            val h2 by transition.animateFloat(
+                initialValue = 0.55f,
+                targetValue = 0.3f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(420, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "eq2",
+            )
+            val h3 by transition.animateFloat(
+                initialValue = 0.25f,
+                targetValue = 0.9f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(360, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "eq3",
+            )
+            listOf(h1, h2, h3)
+        } else {
+            listOf(0.5f, 0.7f, 0.45f)
+        }
     Row(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        listOf(h1, h2, h3).forEach { fraction ->
+        barHeights.forEach { fraction ->
             Box(
                 Modifier
                     .width(3.dp)

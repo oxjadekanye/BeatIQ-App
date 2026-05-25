@@ -60,6 +60,12 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.beatiq.music.R
 import com.beatiq.music.core.auth.AuthPreferences
+import com.beatiq.music.core.features.BeatIQFeatureFlags
+import com.beatiq.music.core.ui.premium.MusicAuraBadge
+import android.content.Intent
+import com.beatiq.music.features.profile_aura.MusicAuraCalculator
+import com.beatiq.music.features.share.BeatIQShareText
+import com.beatiq.music.features.recommendations.intelligence.UserMusicPreferenceStore
 import com.beatiq.music.ui.components.BeatIQBackButton
 import com.beatiq.music.ui.components.PremiumScreenBackground
 import com.beatiq.music.ui.theme.BeatIQAccent
@@ -159,6 +165,32 @@ fun ProfileScreen(
                 )
             }
             Spacer(Modifier.height(12.dp))
+            if (BeatIQFeatureFlags.musicAuraEnabled) {
+                val signals = remember { UserMusicPreferenceStore(context).loadSignals() }
+                val aura = remember(signals) { MusicAuraCalculator.compute(signals) }
+                MusicAuraBadge(
+                    name = aura.name,
+                    description = aura.description,
+                    tags = aura.topMoodTags,
+                    gradientStart = Color(aura.gradientStartHex),
+                    gradientEnd = Color(aura.gradientEndHex),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+                TextButton(
+                    onClick = {
+                        val text = BeatIQShareText.auraShare(aura)
+                        val intent =
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                            }
+                        context.startActivity(Intent.createChooser(intent, "Share Music Aura"))
+                    },
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                ) {
+                    Text("Share Music Aura")
+                }
+            }
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,

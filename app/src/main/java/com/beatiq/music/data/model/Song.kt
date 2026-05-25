@@ -18,4 +18,6 @@ data class Song(
     val dateAdded: Long,
     val playCount: Int,
     val isFavorite: Boolean,
+    /** Epoch millis when last played on-device; null if never played. */
+    val recentlyPlayedAt: Long? = null,
 )

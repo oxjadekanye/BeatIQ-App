@@ -23,7 +23,17 @@ data class OnlineRecommendation(
     val sourceLabel: String? = null,
     /** True when a legal direct preview stream URL is available (e.g. Deezer 30s MP3). */
     val isPlayablePreview: Boolean = false,
+    /** Local intelligence score (rules-based, not remote AI). */
+    val score: Float = 0f,
+    /** Short on-card reason generated locally. */
+    val recommendationReason: String? = null,
+    val moodTags: List<String> = emptyList(),
 ) {
+    val externalUrl: String
+        get() = browserUrl
+
+    val isBrowseOnly: Boolean
+        get() = opensInInternalBrowser
     val browserUrl: String
         get() =
             trackViewUrl.ifBlank {

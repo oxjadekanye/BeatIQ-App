@@ -35,6 +35,9 @@ import com.beatiq.music.core.browser.DirectAudioDownloadDetector
 import com.beatiq.music.core.browser.HttpsUrlValidator
 import com.beatiq.music.features.library.RepositoryProvider
 import kotlinx.coroutines.launch
+import com.beatiq.music.core.features.BeatIQFeatureFlags
+import com.beatiq.music.features.search.SmartSearchMapper
+import com.beatiq.music.features.recommendations.intelligence.RecommendationSignalCollector
 import com.beatiq.music.presentation.discover.DiscoverViewModel
 import com.beatiq.music.ui.components.BeatIQBackButton
 import com.beatiq.music.ui.components.DiscoverSearchBar
@@ -60,6 +63,7 @@ fun DiscoverScreen(
     val genreLabels = listOf(allLabel) + state.genres
     var selectedGenreIndex by remember { mutableIntStateOf(0) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var pasteUrl by remember { mutableStateOf("") }
     var pendingDownload by remember { mutableStateOf<String?>(null) }
@@ -124,6 +128,26 @@ fun DiscoverScreen(
                     onValueChange = { vm.setSearchQuery(it) },
                     placeholder = stringResource(R.string.discover_search_placeholder),
                 )
+            }
+            if (BeatIQFeatureFlags.premiumHomeEnabled) {
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                    ) {
+                        items(SmartSearchMapper.chipSuggestions) { chip ->
+                            GenreFilterChip(
+                                label = chip,
+                                selected = false,
+                                onClick = {
+                                    val mapped = SmartSearchMapper.map(chip)
+                                    vm.setSearchQuery(mapped.providerQuery)
+                                    RecommendationSignalCollector.recordSearch(context, chip)
+                                },
+                            )
+                        }
+                    }
+                }
             }
             item {
                 Text(

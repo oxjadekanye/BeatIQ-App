@@ -13,6 +13,8 @@ object BeatIQInnerRoutes {
     const val ONLINE_BROWSER = "online_browser"
     const val ONLINE_BROWSER_LINK_PATTERN = "online_browser_link/{startUrlKey}"
     const val IDENTIFY_MUSIC = "identify_music"
+    const val AI_DJ = "ai_dj"
+    const val BEAT_FEED = "beat_feed"
 
     const val ARTIST_TRACKS_PATTERN = "artist_tracks/{artistKey}"
     const val ALBUM_TRACKS_PATTERN = "album_tracks/{albumKey}"
@@ -53,6 +55,11 @@ fun isLibraryStackRoute(route: String?): Boolean =
         route?.startsWith("library_genre_songs/") == true ||
         route?.startsWith("playlist_detail/") == true ||
         route?.startsWith("playlist_pick/") == true
+
+fun isHomeStackRoute(route: String?): Boolean =
+    route == BeatIQInnerRoutes.HOME ||
+        route == BeatIQInnerRoutes.AI_DJ ||
+        route == BeatIQInnerRoutes.BEAT_FEED
 
 fun isProfileStackRoute(route: String?): Boolean =
     route == BeatIQInnerRoutes.PROFILE ||

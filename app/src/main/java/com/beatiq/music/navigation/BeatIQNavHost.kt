@@ -55,6 +55,8 @@ import com.beatiq.music.ui.screen.AlbumTracksScreen
 import com.beatiq.music.ui.screen.ArtistTracksScreen
 import com.beatiq.music.ui.screen.DiscoverScreen
 import com.beatiq.music.ui.screen.DownloadsScreen
+import com.beatiq.music.ui.screen.AIDJScreen
+import com.beatiq.music.ui.screen.BeatFeedScreen
 import com.beatiq.music.ui.screen.HomeScreen
 import com.beatiq.music.ui.screen.LibraryFavouritesScreen
 import com.beatiq.music.ui.screen.LibraryAllSongsScreen
@@ -208,6 +210,8 @@ private fun MainShell(
                             tabs.forEach { tab ->
                                 val selected =
                                     when (tab.route) {
+                                        BeatIQInnerRoutes.HOME ->
+                                            isHomeStackRoute(currentRoute)
                                         BeatIQInnerRoutes.LIBRARY ->
                                             isLibraryStackRoute(currentRoute)
                                         BeatIQInnerRoutes.DISCOVER ->
@@ -257,6 +261,39 @@ private fun MainShell(
                 composable(BeatIQInnerRoutes.HOME) {
                     HomeScreen(
                         onBack = popToLanding,
+                        onOpenInternalBrowser = { url ->
+                            innerNavController.navigate(
+                                BeatIQInnerRoutes.onlineBrowserLink(NavEncoding.encode(url)),
+                            )
+                        },
+                        onOpenAiDj = {
+                            innerNavController.navigate(BeatIQInnerRoutes.AI_DJ)
+                        },
+                        onOpenBeatFeed = {
+                            innerNavController.navigate(BeatIQInnerRoutes.BEAT_FEED)
+                        },
+                        onOpenGlobalHeat = { card ->
+                            innerNavController.navigate(
+                                BeatIQInnerRoutes.onlineBrowserLink(
+                                    NavEncoding.encode(card.browseUrl),
+                                ),
+                            )
+                        },
+                    )
+                }
+                composable(BeatIQInnerRoutes.AI_DJ) {
+                    AIDJScreen(
+                        onBack = { innerNavController.popBackStack() },
+                        onOpenInternalBrowser = { url ->
+                            innerNavController.navigate(
+                                BeatIQInnerRoutes.onlineBrowserLink(NavEncoding.encode(url)),
+                            )
+                        },
+                    )
+                }
+                composable(BeatIQInnerRoutes.BEAT_FEED) {
+                    BeatFeedScreen(
+                        onBack = { innerNavController.popBackStack() },
                         onOpenInternalBrowser = { url ->
                             innerNavController.navigate(
                                 BeatIQInnerRoutes.onlineBrowserLink(NavEncoding.encode(url)),
