@@ -1,0 +1,39 @@
+{
+  "manifest_version": 1,
+  "description": "Pinned ACE-Step 1.5 release and minimum weights validated in Phase 2.3E (docs/MUSICME_PHASE_2_3C1_ACESTEP_PREFLIGHT.md).",
+  "code": {
+    "repository": "https://github.com/ace-step/ACE-Step-1.5",
+    "tag": "v0.1.8",
+    "commit": "dce621408bee8c31b4fcf4811682eb9359e1bc94"
+  },
+  "weights": {
+    "repository": "ACE-Step/Ace-Step1.5",
+    "revision": "19671f406d603126926c1b7e2adc169acbcade22",
+    "config_path": "acestep-v15-turbo",
+    "files": {
+      "acestep-v15-turbo/model.safetensors": "3f6e0797fad420a39bd33979eb6e840e30989e34a3794e843d23b60ec6e422d7",
+      "Qwen3-Embedding-0.6B/model.safetensors": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd",
+      "vae/diffusion_pytorch_model.safetensors": "da17edb604c40deaf09e9b24974e590d1ca83a374070e5d0884cfa4bed9a99b0",
+      "acestep-v15-turbo/config.json": "74745ff704ea49164c3d2d1c99fc0670f3fc635a869f0aec2d1311e6a52d400a",
+      "acestep-v15-turbo/silence_latent.pt": "a778e9dd942f5e8b2c09c55370782d318834432b03dabbcdf70e6ed49ad6358b",
+      "vae/config.json": "14e019904df567f26df750317a70e2bd08f9f8f3c40ff4a24c97d1cd3f20ccd2",
+      "Qwen3-Embedding-0.6B/config.json": "bb23c1607cfe059a58d8f0196cf1cebb52082b1056b8e358a579da80a5759420",
+      "Qwen3-Embedding-0.6B/tokenizer.json": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a"
+    },
+    "forbidden_dirs": ["acestep-5Hz-lm-0.6B", "acestep-5Hz-lm-1.7B", "acestep-5Hz-lm-4B"]
+  },
+  "runtime": {
+    "python": "3.12",
+    "torch": "2.10.0+cu128",
+    "allowed_dtypes": ["torch.float16", "torch.bfloat16"],
+    "float16_requires_lyric_encoder_fix": true
+  },
+  "limits": {
+    "max_lyric_chars": 4096,
+    "max_caption_chars": 512,
+    "min_duration_seconds": 10,
+    "max_duration_seconds": 240,
+    "max_takes": 1,
+    "inference_steps": 8
+  }
+}

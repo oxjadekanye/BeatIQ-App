@@ -1,0 +1,143 @@
+# Prepared only. Importing/syncing this Blueprint creates billable resources; do not do so without owner approval.
+previews:
+  generation: "off"
+
+projects:
+  - name: beatiq-musicme
+    environments:
+      - name: samsung-dev
+        networking:
+          isolation: enabled
+        permissions:
+          protection: enabled
+        services:
+          - type: web
+            name: beatiq-musicme-dev-auth
+            runtime: python
+            rootDir: services/musicme-dev-auth
+            region: frankfurt
+            plan: 0.5c-512mb
+            numInstances: 1
+            autoDeployTrigger: "off"
+            buildCommand: python3 -m py_compile devauth.py
+            startCommand: python3 devauth.py init && exec python3 devauth.py serve --host 0.0.0.0 --port 10000
+            healthCheckPath: /healthz
+            disk:
+              name: musicme-dev-auth-data
+              mountPath: /var/data/musicme-dev-auth
+              sizeGB: 1
+            envVars:
+              - key: PYTHON_VERSION
+                value: 3.12.12
+              - key: MUSICME_DEV_AUTH_HOME
+                value: /var/data/musicme-dev-auth
+              - key: MUSICME_DEV_AUTH_ALLOW_PUBLIC
+                value: "true"
+              - key: MUSICME_DEV_AUTH_JWT_SECRET
+                generateValue: true
+              - key: MUSICME_DEV_AUTH_INTERNAL_TOKEN
+                generateValue: true
+
+          - type: web
+            name: beatiq-musicme-audio-dev
+            runtime: python
+            rootDir: services/musicme-audio
+            region: frankfurt
+            plan: 0.5c-512mb
+            numInstances: 1
+            autoDeployTrigger: "off"
+            buildCommand: "python3 -m pip install --require-hashes --only-binary=:all: -r requirements.lock"
+            startCommand: python3 -m audioservice.server
+            healthCheckPath: /readyz
+            envVars:
+              - key: PYTHON_VERSION
+                value: 3.12.12
+              - key: MUSICME_AUDIO_ENVIRONMENT
+                value: development
+              - key: MUSICME_AUDIO_ENGINE
+                value: remote_gpu
+              - key: MUSICME_AUDIO_HOST
+                value: 0.0.0.0
+              - key: MUSICME_AUDIO_PORT
+                value: "10000"
+              - key: MUSICME_AUDIO_ALLOW_PUBLIC_DEV_SERVICE
+                value: "true"
+              - key: MUSICME_AUDIO_DATABASE_URL
+                fromDatabase:
+                  name: beatiq-musicme-audio-dev-db
+                  property: connectionString
+              - key: MUSICME_AUDIO_STORAGE_ROOT
+                value: /tmp/musicme-audio-scratch
+              - key: MUSICME_AUDIO_STORAGE_BACKEND
+                value: s3
+              # A dedicated private bucket is provisioned separately because Render does not manage R2/S3 buckets.
+              - key: MUSICME_AUDIO_OBJECT_ENDPOINT
+                sync: false
+              - key: MUSICME_AUDIO_OBJECT_BUCKET
+                sync: false
+              - key: MUSICME_AUDIO_OBJECT_REGION
+                value: auto
+              - key: MUSICME_AUDIO_OBJECT_ACCESS_KEY_ID
+                sync: false
+              - key: MUSICME_AUDIO_OBJECT_SECRET_ACCESS_KEY
+                sync: false
+              - key: MUSICME_AUDIO_OBJECT_PREFIX
+                value: dev
+              - key: MUSICME_AUDIO_OBJECT_FORCE_PATH_STYLE
+                value: "true"
+              - key: MUSICME_AUDIO_GPU_LEDGER_BACKEND
+                value: database
+              - key: MUSICME_AUDIO_JWT_SECRET
+                fromService:
+                  type: web
+                  name: beatiq-musicme-dev-auth
+                  envVarKey: MUSICME_DEV_AUTH_JWT_SECRET
+              - key: MUSICME_AUDIO_JWT_ISSUER
+                value: beatiq-dev-auth
+              - key: MUSICME_AUDIO_JWT_AUDIENCE
+                value: musicme-dev
+              - key: MUSICME_AUDIO_JWT_REVOCATION_TOKEN
+                fromService:
+                  type: web
+                  name: beatiq-musicme-dev-auth
+                  envVarKey: MUSICME_DEV_AUTH_INTERNAL_TOKEN
+              # Render cannot interpolate service hostnames into complete URLs. Supply the exact HTTPS endpoints.
+              - key: MUSICME_AUDIO_PUBLIC_BASE_URL
+                sync: false
+              - key: MUSICME_AUDIO_JWT_REVOCATION_URL
+                sync: false
+              - key: MUSICME_AUDIO_WORKER_URL
+                sync: false
+              # JSON: worker bearer token plus Modal-Key/Modal-Secret headers. Keep entirely server-side.
+              - key: MUSICME_AUDIO_WORKER_CREDENTIALS_JSON
+                sync: false
+              - key: MUSICME_AUDIO_WORKER_ALLOWED_HOSTS
+                value: .modal.run,.proxy.runpod.net
+              - key: MUSICME_AUDIO_SIGNING_SECRET
+                generateValue: true
+              - key: MUSICME_AUDIO_WORKERS
+                value: "1"
+              - key: MUSICME_AUDIO_RENDER_TIMEOUT_SECONDS
+                value: "600"
+              - key: MUSICME_AUDIO_WORKER_STARTUP_TIMEOUT_SECONDS
+                value: "600"
+              - key: MUSICME_AUDIO_GPU_PRICE_PER_HOUR_USD
+                value: "0.82"
+              - key: MUSICME_AUDIO_GPU_DAILY_BUDGET_USD
+                value: "0.75"
+              - key: MUSICME_AUDIO_GPU_MAX_RENDERS_PER_DAY
+                value: "12"
+              - key: MUSICME_AUDIO_GPU_RESERVE_SECONDS
+                value: "420"
+              - key: MUSICME_AUDIO_GPU_IDLE_TAIL_SECONDS
+                value: "120"
+
+        databases:
+          - name: beatiq-musicme-audio-dev-db
+            region: frankfurt
+            plan: 0.1c-256mb
+            diskSizeGB: 1
+            storageAutoscalingEnabled: false
+            databaseName: musicme_audio_dev
+            user: musicme_audio_dev
+            ipAllowList: []

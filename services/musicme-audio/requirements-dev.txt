@@ -1,0 +1,3 @@
+# Test/development dependencies only. Install alongside requirements.lock for local validation.
+pytest>=7
+PyYAML>=6
