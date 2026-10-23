@@ -9,6 +9,7 @@ object BeatIQInnerRoutes {
     const val DISCOVER = "discover"
     const val LIBRARY = "library"
     const val DOWNLOADS = "downloads"
+    const val MUSIC_ME = "musicme"
     const val PROFILE = "profile"
     const val ONLINE_BROWSER = "online_browser"
     const val ONLINE_BROWSER_LINK_PATTERN = "online_browser_link/{startUrlKey}"
@@ -31,7 +32,7 @@ object BeatIQInnerRoutes {
     const val LEGAL = "legal"
 
     val bottomTabRoutes =
-        setOf(HOME, DISCOVER, LIBRARY, DOWNLOADS, PROFILE)
+        setOf(HOME, DISCOVER, LIBRARY, DOWNLOADS, MUSIC_ME, PROFILE)
 
     fun artistTracks(encodedArtistKey: String): String = "artist_tracks/$encodedArtistKey"
 

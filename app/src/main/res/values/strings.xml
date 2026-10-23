@@ -11,11 +11,13 @@
     <string name="screen_discover">Discover</string>
     <string name="screen_library">Library</string>
     <string name="screen_downloads">Downloads</string>
+    <string name="screen_musicme">MusicMe</string>
     <string name="screen_profile">Profile</string>
     <string name="nav_home">Home</string>
     <string name="nav_discover">Discover</string>
     <string name="nav_library">Library</string>
     <string name="nav_downloads">Downloads</string>
+    <string name="nav_musicme">MusicMe</string>
     <string name="nav_profile">Profile</string>
 
     <string name="home_greet_morning">Good morning</string>

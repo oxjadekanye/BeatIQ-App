@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.local
+
+# Local databases and audio objects (may contain lyrics and generated audio)
+var/
+*.db
+*.db-wal
+*.db-shm
+*.wav
+*.m4a
+*.mp3
+
+# Model weights never belong in Git
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.bin

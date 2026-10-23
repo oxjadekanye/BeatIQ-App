@@ -1,0 +1,8 @@
+# Direct runtime dependencies only. Render installs the fully resolved, hash-locked requirements.lock instead.
+# Regenerate that lock for Python 3.12 / x86_64 manylinux; do not deploy from this input file directly.
+# Needed only for asymmetric JWT verification (RS256/ES256 with JWKS):
+cryptography>=42
+# Needed only for PostgreSQL storage (production):
+psycopg2-binary>=2.9
+# Private S3-compatible song storage (AWS S3 / Cloudflare R2):
+boto3>=1.36,<2  # 1.36+ for request_checksum_calculation (S3-compatible stores)

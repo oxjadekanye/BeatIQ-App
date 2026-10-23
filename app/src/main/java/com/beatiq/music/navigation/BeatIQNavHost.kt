@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CloudDownload
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -51,6 +53,8 @@ import com.beatiq.music.data.model.Song
 import com.beatiq.music.features.library.RepositoryProvider
 import com.beatiq.music.features.player.FullPlayerScreen
 import com.beatiq.music.features.player.MiniPlayerBar
+import com.beatiq.music.musicme.MusicMeRoot
+import com.beatiq.music.musicme.MusicMeViewModel
 import com.beatiq.music.ui.screen.AlbumTracksScreen
 import com.beatiq.music.ui.screen.ArtistTracksScreen
 import com.beatiq.music.ui.screen.DiscoverScreen
@@ -161,6 +165,7 @@ private fun MainShell(
         TabItem(BeatIQInnerRoutes.DISCOVER, R.string.nav_discover, Icons.Filled.Search),
         TabItem(BeatIQInnerRoutes.LIBRARY, R.string.nav_library, Icons.Outlined.LibraryMusic),
         TabItem(BeatIQInnerRoutes.DOWNLOADS, R.string.nav_downloads, Icons.Outlined.CloudDownload),
+        TabItem(BeatIQInnerRoutes.MUSIC_ME, R.string.nav_musicme, Icons.Filled.AutoAwesome),
         TabItem(BeatIQInnerRoutes.PROFILE, R.string.nav_profile, Icons.Filled.Person),
     )
 
@@ -320,6 +325,9 @@ private fun MainShell(
                 }
                 composable(BeatIQInnerRoutes.DOWNLOADS) {
                     DownloadsScreen(onBack = popToLanding)
+                }
+                composable(BeatIQInnerRoutes.MUSIC_ME) {
+                    MusicMeRoot(viewModel<MusicMeViewModel>())
                 }
                 composable(BeatIQInnerRoutes.PROFILE) {
                     ProfileScreen(

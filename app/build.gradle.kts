@@ -55,6 +55,14 @@ android {
         val productionApi = "https://beatiq.onrender.com/api/v1/"
         buildConfigField("String", "API_BASE_URL", "\"${productionApi.escapeForBuildConfig()}\"")
 
+        // Public service origins only; credentials remain server-side. Empty keeps each feature hidden.
+        val musicMeAudioUrl = providers.gradleProperty("musicme.audio.url")
+            .orElse(providers.environmentVariable("MUSICME_AUDIO_URL")).getOrElse("").trim()
+        val musicMeSongwriterUrl = providers.gradleProperty("musicme.songwriter.url")
+            .orElse(providers.environmentVariable("MUSICME_SONGWRITER_URL")).getOrElse("").trim()
+        buildConfigField("String", "MUSICME_AUDIO_URL", "\"${musicMeAudioUrl.escapeForBuildConfig()}\"")
+        buildConfigField("String", "MUSICME_SONGWRITER_URL", "\"${musicMeSongwriterUrl.escapeForBuildConfig()}\"")
+
         val auddToken =
             run {
                 val f = rootProject.file("local.properties")
@@ -126,6 +134,9 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -135,6 +146,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -155,6 +167,10 @@ dependencies {
     implementation("androidx.browser:browser:1.8.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core:1.6.1")
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
