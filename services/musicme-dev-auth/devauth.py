@@ -23,11 +23,13 @@ Usage:
 """
 import argparse
 import base64
+import errno
 import hashlib
 import hmac
 import json
 import os
 import secrets
+import stat
 import sys
 import threading
 import time
@@ -42,12 +44,51 @@ PBKDF2_ROUNDS = 200_000
 LOOPBACK = ("127.0.0.1", "::1", "localhost")
 MAX_FAILURES_PER_MINUTE = 5
 MAX_FAILURE_KEYS = 1024
+_HOME_LOCK = threading.Lock()
+_VERIFIED_HOMES = set()
+
+
+def _verify_private_writes(path):
+    """Prove that the mounted directory supports writable, owner-only regular files."""
+    probe = os.path.join(path, f".write-test-{uuid.uuid4().hex}")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = None
+    try:
+        fd = os.open(probe, flags, 0o600)
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) & 0o077:
+            raise PermissionError("DEV auth storage cannot create owner-only files.")
+        os.write(fd, b"ok")
+        os.fsync(fd)
+    finally:
+        if fd is not None:
+            os.close(fd)
+        try:
+            os.unlink(probe)
+        except FileNotFoundError:
+            pass
 
 
 def home():
-    path = os.environ.get("MUSICME_DEV_AUTH_HOME") or os.path.expanduser("~/.cache/musicme-dev/auth")
-    os.makedirs(path, mode=0o700, exist_ok=True)
-    os.chmod(path, 0o700)
+    path = os.path.abspath(os.environ.get("MUSICME_DEV_AUTH_HOME") or os.path.expanduser("~/.cache/musicme-dev/auth"))
+    with _HOME_LOCK:
+        if path in _VERIFIED_HOMES:
+            return path
+        os.makedirs(path, mode=0o700, exist_ok=True)
+        info = os.lstat(path)
+        if not stat.S_ISDIR(info.st_mode):
+            raise NotADirectoryError(f"DEV auth storage is not a real directory: {path}")
+        try:
+            os.chmod(path, 0o700)
+        except OSError as error:
+            # Render owns the persistent-disk mount point and may reject chmod even for the service user.
+            # Accept only that known mount behavior, then verify that private file creation actually works.
+            if error.errno != errno.EPERM:
+                raise
+        _verify_private_writes(path)
+        _VERIFIED_HOMES.add(path)
     return path
 
 
@@ -58,15 +99,53 @@ def _path(name):
 def _write_private(name, data):
     path = _path(name)
     tmp = path + f".{uuid.uuid4().hex}.tmp"
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "w") as f:
-        f.write(data)
-    os.replace(tmp, path)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = None
+    try:
+        fd = os.open(tmp, flags, 0o600)
+        with os.fdopen(fd, "w") as f:
+            fd = None  # fdopen owns the descriptor from here.
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        info = os.lstat(tmp)
+        if not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) & 0o077:
+            raise PermissionError("DEV auth storage did not preserve owner-only file permissions.")
+        os.replace(tmp, path)
+    finally:
+        if fd is not None:
+            os.close(fd)
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+
+
+def _open_private(name):
+    path = _path(name)
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(path, flags)
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            raise PermissionError(f"DEV auth state is not a regular file: {name}")
+        if stat.S_IMODE(info.st_mode) & 0o077:
+            os.fchmod(fd, 0o600)
+            if stat.S_IMODE(os.fstat(fd).st_mode) & 0o077:
+                raise PermissionError(f"DEV auth state is not owner-only: {name}")
+        return os.fdopen(fd)
+    except Exception:
+        os.close(fd)
+        raise
 
 
 def _read_json(name, default):
     try:
-        with open(_path(name)) as f:
+        with _open_private(name) as f:
             return json.load(f)
     except FileNotFoundError:
         return default
@@ -78,7 +157,7 @@ def secret():
         if len(configured) < 32:
             raise SystemExit("MUSICME_DEV_AUTH_JWT_SECRET must be at least 32 characters.")
         return configured
-    with open(_path("jwt_secret")) as f:
+    with _open_private("jwt_secret") as f:
         value = f.read().strip()
     if len(value) < 64:
         raise SystemExit("DEV secret is missing or too short; run: devauth.py init")
@@ -163,12 +242,16 @@ def revoke(email=None, everyone=False):
 
 
 def init(rotate=False):
-    if os.path.exists(_path("jwt_secret")) and not rotate:
-        return False
-    _write_private("jwt_secret", secrets.token_hex(48))
+    configured = os.environ.get("MUSICME_DEV_AUTH_JWT_SECRET", "").strip()
+    created = False
+    if configured:
+        secret()  # validate the persistent Render-generated value before startup
+    elif not os.path.exists(_path("jwt_secret")) or rotate:
+        _write_private("jwt_secret", secrets.token_hex(48))
+        created = True
     if not os.path.exists(_path("revocation.json")):
         _write_private("revocation.json", json.dumps({"not_before": {}, "revoked_jti": []}, indent=2))
-    return True
+    return created
 
 
 class _Failures:

@@ -1,4 +1,5 @@
 """BeatIQ DEV auth stub: tokens, sign-in, refresh, revocation and rotation, checked against the audio verifier."""
+import errno
 import importlib
 import io
 import json
@@ -80,6 +81,96 @@ def test_files_are_private_and_the_secret_is_never_printed(auth_home, capsys):
     devauth.main(["service-env"])
     out = capsys.readouterr().out
     assert devauth.secret() not in out and "JWT_SECRET_FILE=" in out and "REVOCATION_FILE=" in out
+
+
+def test_render_mount_chmod_eperm_still_requires_private_writable_persistent_files(tmp_path, monkeypatch):
+    mounted = tmp_path / "render-disk"
+    mounted.mkdir()
+    monkeypatch.setenv("MUSICME_DEV_AUTH_HOME", str(mounted))
+    monkeypatch.delenv("MUSICME_DEV_AUTH_JWT_SECRET", raising=False)
+    real_chmod = os.chmod
+
+    def render_chmod(path, mode):
+        if os.path.abspath(path) == str(mounted):
+            raise PermissionError(errno.EPERM, "Render owns the mount point", str(path))
+        return real_chmod(path, mode)
+
+    monkeypatch.setattr(os, "chmod", render_chmod)
+    assert devauth.init() is True
+    first_secret = devauth.secret()
+    assert len(first_secret) == 96
+    for name in ("jwt_secret", "revocation.json"):
+        assert stat.S_IMODE(os.stat(mounted / name).st_mode) == 0o600
+
+    # A fresh process verifies the mount again and reuses the persisted secret instead of rotating it.
+    devauth._VERIFIED_HOMES.discard(str(mounted))
+    assert devauth.init() is False
+    assert devauth.secret() == first_secret
+
+
+def test_render_generated_secret_is_validated_and_not_shadowed_by_a_disk_secret(tmp_path, monkeypatch):
+    mounted = tmp_path / "render-disk"
+    mounted.mkdir()
+    configured = "render-generated-secret-that-persists-across-restarts"
+    monkeypatch.setenv("MUSICME_DEV_AUTH_HOME", str(mounted))
+    monkeypatch.setenv("MUSICME_DEV_AUTH_JWT_SECRET", configured)
+
+    def render_chmod(path, mode):
+        raise PermissionError(errno.EPERM, "Render owns the mount point", str(path))
+
+    monkeypatch.setattr(os, "chmod", render_chmod)
+    assert devauth.init() is False
+    assert devauth.secret() == configured
+    assert not (mounted / "jwt_secret").exists()
+    assert stat.S_IMODE(os.stat(mounted / "revocation.json").st_mode) == 0o600
+    devauth._VERIFIED_HOMES.discard(str(mounted))
+    assert devauth.init() is False
+    assert devauth.secret() == configured
+
+
+def test_home_rejects_unexpected_chmod_and_unwritable_mount_failures(tmp_path, monkeypatch):
+    mounted = tmp_path / "render-disk"
+    mounted.mkdir()
+    monkeypatch.setenv("MUSICME_DEV_AUTH_HOME", str(mounted))
+
+    def denied_chmod(path, mode):
+        raise PermissionError(errno.EACCES, "unexpected denial", str(path))
+
+    monkeypatch.setattr(os, "chmod", denied_chmod)
+    with pytest.raises(PermissionError) as caught:
+        devauth.home()
+    assert caught.value.errno == errno.EACCES
+
+    def render_chmod(path, mode):
+        raise PermissionError(errno.EPERM, "Render owns the mount point", str(path))
+
+    monkeypatch.setattr(os, "chmod", render_chmod)
+    real_open = os.open
+
+    def denied_probe(path, flags, mode=0o777):
+        if os.path.basename(path).startswith(".write-test-"):
+            raise PermissionError(errno.EACCES, "mount is not writable", str(path))
+        return real_open(path, flags, mode)
+
+    monkeypatch.setattr(os, "open", denied_probe)
+    with pytest.raises(PermissionError) as caught:
+        devauth.home()
+    assert caught.value.errno == errno.EACCES
+
+
+def test_secret_initialization_fails_closed_on_persistence_error(tmp_path, monkeypatch):
+    mounted = tmp_path / "render-disk"
+    monkeypatch.setenv("MUSICME_DEV_AUTH_HOME", str(mounted))
+    monkeypatch.delenv("MUSICME_DEV_AUTH_JWT_SECRET", raising=False)
+
+    def failed_replace(source, destination):
+        raise OSError(errno.EIO, "persistent disk write failed")
+
+    monkeypatch.setattr(os, "replace", failed_replace)
+    with pytest.raises(OSError) as caught:
+        devauth.init()
+    assert caught.value.errno == errno.EIO
+    assert not (mounted / "jwt_secret").exists()
 
 
 def test_tokens_verify_expire_and_reject_tampering(auth_home):
